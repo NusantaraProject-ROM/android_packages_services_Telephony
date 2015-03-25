@@ -726,6 +726,7 @@ abstract class TelephonyConnection extends Connection implements Holdable,
     public void onDisconnect() {
         Log.v(this, "onDisconnect");
         mHandler.obtainMessage(MSG_HANGUP, android.telephony.DisconnectCause.LOCAL).sendToTarget();
+        PhoneNumberUtils.resetCountryDetectorInfo();
     }
 
     /**
