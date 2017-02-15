@@ -68,7 +68,8 @@ import java.util.concurrent.ConcurrentHashMap;
 /**
  * Base class for CDMA and GSM connections.
  */
-abstract class TelephonyConnection extends Connection implements Holdable {
+abstract class TelephonyConnection extends Connection implements Holdable,
+          TelephonyConnectionService.ConnectionRemovedListener {
     private static final int MSG_PRECISE_CALL_STATE_CHANGED = 1;
     private static final int MSG_RINGBACK_TONE = 2;
     private static final int MSG_HANDOVER_STATE_CHANGED = 3;
@@ -93,6 +94,7 @@ abstract class TelephonyConnection extends Connection implements Holdable {
     private static final int MSG_CDMA_VOICE_PRIVACY_ON = 15;
     private static final int MSG_CDMA_VOICE_PRIVACY_OFF = 16;
     private static final int MSG_HANGUP = 17;
+    private static final int MSG_CONNECTION_REMOVED = 18;
 
     private final Handler mHandler = new Handler() {
         @Override
@@ -248,6 +250,11 @@ abstract class TelephonyConnection extends Connection implements Holdable {
                 case MSG_HANGUP:
                     int cause = (int) msg.obj;
                     hangup(cause);
+                    break;
+                case MSG_CONNECTION_REMOVED:
+                    Log.d(this, "MSG_CONNECTION_REMOVED");
+                    // Some connection has disconnected. Re fresh disable add call property.
+                    refreshDisableAddCall();
                     break;
             }
         }
@@ -699,6 +706,13 @@ abstract class TelephonyConnection extends Connection implements Holdable {
         originalConnection.sendRttModifyResponse(textStream);
     }
 
+    @Override
+    public void onConnectionRemoved(TelephonyConnection conn) {
+        if (conn != this) {
+            mHandler.obtainMessage(MSG_CONNECTION_REMOVED).sendToTarget();
+        }
+    }
+
     public void performHold() {
         Log.v(this, "performHold");
         // TODO: Can dialing calls be put on hold as well since they take up the
@@ -1037,9 +1051,18 @@ abstract class TelephonyConnection extends Connection implements Holdable {
         boolean isVowifiEnabled = false;
         if (phone instanceof ImsPhone) {
             ImsPhone imsPhone = (ImsPhone) phone;
+            ImsCall call = null;
             if (imsPhone.getForegroundCall() != null
                     && imsPhone.getForegroundCall().getImsCall() != null) {
-                ImsCall call = imsPhone.getForegroundCall().getImsCall();
+                call = imsPhone.getForegroundCall().getImsCall();
+            } else if (imsPhone.getBackgroundCall() != null
+                    && imsPhone.getBackgroundCall().getImsCall() != null) {
+                call = imsPhone.getBackgroundCall().getImsCall();
+            } else if (imsPhone.getRingingCall() != null
+                    && imsPhone.getRingingCall().getImsCall() != null) {
+                call = imsPhone.getRingingCall().getImsCall();
+            }
+            if (call != null) {
                 isCurrentVideoCall = call.isVideoCall();
                 wasVideoCall = call.wasVideoCall();
             }
