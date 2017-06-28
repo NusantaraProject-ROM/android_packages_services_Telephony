@@ -60,6 +60,8 @@ import com.android.phone.PhoneGlobals;
 import com.android.phone.PhoneUtils;
 import com.android.phone.R;
 
+import org.codeaurora.ims.utils.QtiImsExtUtils;
+
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -1161,13 +1163,17 @@ abstract class TelephonyConnection extends Connection implements Holdable,
             mTreatAsEmergencyCall = true;
         }
 
-        if (isImsConnection()) {
-            mWasImsConnection = true;
-        }
-        mIsMultiParty = mOriginalConnection.isMultiparty();
-
         Bundle extrasToPut = new Bundle();
         List<String> extrasToRemove = new ArrayList<>();
+
+        if (isImsConnection()) {
+            mWasImsConnection = true;
+        } else {
+            extrasToRemove.add(QtiImsExtUtils.QTI_IMS_PHONE_ID_EXTRA_KEY);
+        }
+
+        mIsMultiParty = mOriginalConnection.isMultiparty();
+
         if (mOriginalConnection.isActiveCallDisconnectedOnAnswer()) {
             extrasToPut.putBoolean(Connection.EXTRA_ANSWERING_DROPS_FG_CALL, true);
         } else {
