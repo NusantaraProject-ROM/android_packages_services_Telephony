@@ -32,6 +32,9 @@ import android.telecom.StatusHints;
 import android.telecom.VideoProfile;
 import android.telephony.CarrierConfigManager;
 import android.telephony.PhoneNumberUtils;
+import android.telephony.SubscriptionInfo;
+import android.telephony.SubscriptionManager;
+import android.telephony.TelephonyManager;
 import android.util.Pair;
 
 import com.android.internal.telephony.Call;
@@ -1010,8 +1013,19 @@ public class ImsConference extends Conference implements Holdable {
             Phone phone = mConferenceHost.getPhone();
             if (phone != null) {
                 Context context = phone.getContext();
+                String displaySubId = "";
+                if (TelephonyManager.getDefault().getPhoneCount() > 1) {
+                    final int phoneId = mConferenceHost.getPhone().getPhoneId();
+                    SubscriptionInfo sub = SubscriptionManager.from(
+                            mConferenceHost.getPhone().getContext())
+                        .getActiveSubscriptionInfoForSimSlotIndex(phoneId);
+                    if (sub != null) {
+                        displaySubId = sub.getDisplayName().toString();
+                        displaySubId  = " " + displaySubId;
+                    }
+                }
                 setStatusHints(new StatusHints(
-                        context.getString(R.string.status_hint_label_wifi_call),
+                        context.getString(R.string.status_hint_label_wifi_call) + displaySubId,
                         Icon.createWithResource(
                                 context.getResources(),
                                 R.drawable.ic_signal_wifi_4_bar_24dp),

@@ -36,6 +36,8 @@ import android.telecom.VideoProfile;
 import android.telephony.CarrierConfigManager;
 import android.telephony.DisconnectCause;
 import android.telephony.PhoneNumberUtils;
+import android.telephony.SubscriptionInfo;
+import android.telephony.SubscriptionManager;
 import android.telephony.TelephonyManager;
 import android.telephony.ims.ImsCallProfile;
 import android.text.TextUtils;
@@ -2101,14 +2103,25 @@ abstract class TelephonyConnection extends Connection implements Holdable,
 
     private void updateStatusHints() {
         boolean isIncoming = isValidRingingCall();
-        if (mIsWifi && (isIncoming || getState() == STATE_ACTIVE)) {
-            int labelId = isIncoming
+        if (mIsWifi && (isIncoming || getState() == STATE_ACTIVE) &&
+                (getPhone() != null)) {
+            final int labelId = isIncoming
                     ? R.string.status_hint_label_incoming_wifi_call
                     : R.string.status_hint_label_wifi_call;
+            String displaySubId = "";
+            if (TelephonyManager.getDefault().getPhoneCount() > 1) {
+                final int phoneId = getPhone().getPhoneId();
+                SubscriptionInfo sub = SubscriptionManager.from(getPhone().getContext())
+                    .getActiveSubscriptionInfoForSimSlotIndex(phoneId);
+                if (sub != null) {
+                    displaySubId = sub.getDisplayName().toString();
+                    displaySubId  = " " + displaySubId;
+                }
+            }
 
             Context context = getPhone().getContext();
             setStatusHints(new StatusHints(
-                    context.getString(labelId),
+                    context.getString(labelId) + displaySubId,
                     Icon.createWithResource(
                             context.getResources(),
                             R.drawable.ic_signal_wifi_4_bar_24dp),
