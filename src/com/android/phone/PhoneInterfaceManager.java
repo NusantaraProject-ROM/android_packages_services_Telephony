@@ -75,10 +75,12 @@ import android.util.Pair;
 import android.util.Slog;
 
 import com.android.ims.ImsManager;
-import com.android.ims.internal.IImsServiceController;
-import com.android.ims.internal.IImsServiceFeatureListener;
+import com.android.ims.internal.IImsMMTelFeature;
+import com.android.ims.internal.IImsRcsFeature;
+import com.android.ims.internal.IImsServiceFeatureCallback;
 import com.android.internal.telephony.CallManager;
 import com.android.internal.telephony.CallStateException;
+import com.android.internal.telephony.CarrierInfoManager;
 import com.android.internal.telephony.CellNetworkScanResult;
 import com.android.internal.telephony.CommandException;
 import com.android.internal.telephony.DefaultPhoneNotifier;
@@ -154,8 +156,6 @@ public class PhoneInterfaceManager extends ITelephony.Stub {
     private static final int EVENT_SET_PREFERRED_NETWORK_TYPE_DONE = 24;
     private static final int CMD_SEND_ENVELOPE = 25;
     private static final int EVENT_SEND_ENVELOPE_DONE = 26;
-    private static final int CMD_INVOKE_OEM_RIL_REQUEST_RAW = 27;
-    private static final int EVENT_INVOKE_OEM_RIL_REQUEST_RAW_DONE = 28;
     private static final int CMD_TRANSMIT_APDU_BASIC_CHANNEL = 29;
     private static final int EVENT_TRANSMIT_APDU_BASIC_CHANNEL_DONE = 30;
     private static final int CMD_EXCHANGE_SIM_IO = 31;
@@ -719,21 +719,6 @@ public class PhoneInterfaceManager extends ITelephony.Stub {
 
                 case EVENT_SET_PREFERRED_NETWORK_TYPE_DONE:
                     handleNullReturnEvent(msg, "setPreferredNetworkType");
-                    break;
-
-                case CMD_INVOKE_OEM_RIL_REQUEST_RAW:
-                    request = (MainThreadRequest)msg.obj;
-                    onCompleted = obtainMessage(EVENT_INVOKE_OEM_RIL_REQUEST_RAW_DONE, request);
-                    mPhone.invokeOemRilRequestRaw((byte[])request.argument, onCompleted);
-                    break;
-
-                case EVENT_INVOKE_OEM_RIL_REQUEST_RAW_DONE:
-                    ar = (AsyncResult)msg.obj;
-                    request = (MainThreadRequest)ar.userObj;
-                    request.result = ar;
-                    synchronized (request) {
-                        request.notifyAll();
-                    }
                     break;
 
                 case CMD_SET_VOICEMAIL_NUMBER:
@@ -1555,7 +1540,7 @@ public class PhoneInterfaceManager extends ITelephony.Stub {
         int subId = mSubscriptionController.getDefaultDataSubId();
         final Phone phone = getPhone(subId);
         if (phone != null) {
-            phone.setDataEnabled(true);
+            phone.setUserDataEnabled(true);
             return true;
         } else {
             return false;
@@ -1569,7 +1554,7 @@ public class PhoneInterfaceManager extends ITelephony.Stub {
         int subId = mSubscriptionController.getDefaultDataSubId();
         final Phone phone = getPhone(subId);
         if (phone != null) {
-            phone.setDataEnabled(false);
+            phone.setUserDataEnabled(false);
             return true;
         } else {
             return false;
@@ -1782,6 +1767,18 @@ public class PhoneInterfaceManager extends ITelephony.Stub {
       }
       Phone phone = PhoneFactory.getPhone(slotIndex);
       return phone == null ? null : phone.getDeviceSvn();
+    }
+
+    @Override
+    public int getSubscriptionCarrierId(int subId) {
+        final Phone phone = getPhone(subId);
+        return phone == null ? TelephonyManager.UNKNOWN_CARRIER_ID : phone.getCarrierId();
+    }
+
+    @Override
+    public String getSubscriptionCarrierName(int subId) {
+        final Phone phone = getPhone(subId);
+        return phone == null ? null : phone.getCarrierName();
     }
 
     //
@@ -2096,9 +2093,7 @@ public class PhoneInterfaceManager extends ITelephony.Stub {
      */
     @Override
     public int getVoiceActivationState(int subId, String callingPackage) {
-        if (!canReadPhoneState(callingPackage, "getVoiceActivationStateForSubscriber")) {
-            return TelephonyManager.SIM_ACTIVATION_STATE_UNKNOWN;
-        }
+        enforceReadPrivilegedPermission();
         final Phone phone = getPhone(subId);
         if (phone != null) {
             return phone.getVoiceActivationState();
@@ -2112,9 +2107,7 @@ public class PhoneInterfaceManager extends ITelephony.Stub {
      */
     @Override
     public int getDataActivationState(int subId, String callingPackage) {
-        if (!canReadPhoneState(callingPackage, "getDataActivationStateForSubscriber")) {
-            return TelephonyManager.SIM_ACTIVATION_STATE_UNKNOWN;
-        }
+        enforceReadPrivilegedPermission();
         final Phone phone = getPhone(subId);
         if (phone != null) {
             return phone.getDataActivationState();
@@ -2578,16 +2571,37 @@ public class PhoneInterfaceManager extends ITelephony.Stub {
     }
 
     /**
-     * Returns the {@link IImsServiceController} that corresponds to the given slot Id and IMS
-     * feature or {@link null} if the service is not available. If an ImsServiceController is
-     * available, the {@link IImsServiceFeatureListener} callback is registered as a listener for
-     * feature updates.
+     * Returns the {@link IImsMMTelFeature} that corresponds to the given slot Id for the MMTel
+     * feature or {@link null} if the service is not available. If the feature is available, the
+     * {@link IImsServiceFeatureCallback} callback is registered as a listener for feature updates.
      */
-    public IImsServiceController getImsServiceControllerAndListen(int slotIndex, int feature,
-            IImsServiceFeatureListener callback) {
+    public IImsMMTelFeature getMMTelFeatureAndListen(int slotId,
+            IImsServiceFeatureCallback callback) {
         enforceModifyPermission();
-        return PhoneFactory.getImsResolver().getImsServiceControllerAndListen(slotIndex, feature,
-                callback);
+        return PhoneFactory.getImsResolver().getMMTelFeatureAndListen(slotId, callback);
+    }
+
+    /**
+     * Returns the {@link IImsMMTelFeature} that corresponds to the given slot Id for the MMTel
+     * feature during emergency calling or {@link null} if the service is not available. If the
+     * feature is available, the {@link IImsServiceFeatureCallback} callback is registered as a
+     * listener for feature updates.
+     */
+    public IImsMMTelFeature getEmergencyMMTelFeatureAndListen(int slotId,
+            IImsServiceFeatureCallback callback) {
+        enforceModifyPermission();
+        return PhoneFactory.getImsResolver().getEmergencyMMTelFeatureAndListen(slotId, callback);
+    }
+
+    /**
+     * Returns the {@link IImsRcsFeature} that corresponds to the given slot Id for the RCS
+     * feature during emergency calling or {@link null} if the service is not available. If the
+     * feature is available, the {@link IImsServiceFeatureCallback} callback is registered as a
+     * listener for feature updates.
+     */
+    public IImsRcsFeature getRcsFeatureAndListen(int slotId, IImsServiceFeatureCallback callback) {
+        enforceModifyPermission();
+        return PhoneFactory.getImsResolver().getRcsFeatureAndListen(slotId, callback);
     }
 
     public void setImsRegistrationState(boolean registered) {
@@ -2610,9 +2624,13 @@ public class PhoneInterfaceManager extends ITelephony.Stub {
      * Set the network selection mode to manual with the selected carrier.
      */
     @Override
-    public boolean setNetworkSelectionModeManual(int subId, OperatorInfo operator,
+    public boolean setNetworkSelectionModeManual(int subId, String operatorNumeric,
             boolean persistSelection) {
         enforceModifyPermissionOrCarrierPrivilege(subId);
+        OperatorInfo operator = new OperatorInfo(
+                /* operatorAlphaLong */ "",
+                /* operatorAlphaShort */ "",
+                operatorNumeric);
         if (DBG) log("setNetworkSelectionModeManual: subId:" + subId + " operator:" + operator);
         ManualNetworkSelectionArgument arg = new ManualNetworkSelectionArgument(operator,
                 persistSelection);
@@ -2739,28 +2757,46 @@ public class PhoneInterfaceManager extends ITelephony.Stub {
      * @param enable {@code true} turn turn data on, else {@code false}
      */
     @Override
-    public void setDataEnabled(int subId, boolean enable) {
+    public void setUserDataEnabled(int subId, boolean enable) {
         enforceModifyPermissionOrCarrierPrivilege(subId);
         int phoneId = mSubscriptionController.getPhoneId(subId);
-        if (DBG) log("getDataEnabled: subId=" + subId + " phoneId=" + phoneId);
+        if (DBG) log("setUserDataEnabled: subId=" + subId + " phoneId=" + phoneId);
         Phone phone = PhoneFactory.getPhone(phoneId);
         if (phone != null) {
-            if (DBG) log("setDataEnabled: subId=" + subId + " enable=" + enable);
-            phone.setDataEnabled(enable);
+            if (DBG) log("setUserDataEnabled: subId=" + subId + " enable=" + enable);
+            phone.setUserDataEnabled(enable);
         } else {
-            loge("setDataEnabled: no phone for subId=" + subId);
+            loge("setUserDataEnabled: no phone for subId=" + subId);
         }
     }
 
     /**
-     * Get whether mobile data is enabled.
+     * Get the user enabled state of Mobile Data.
+     *
+     * TODO: remove and use isUserDataEnabled.
+     * This can't be removed now because some vendor codes
+     * calls through ITelephony directly while they should
+     * use TelephonyManager.
+     *
+     * @return true on enabled
+     */
+    @Override
+    public boolean getDataEnabled(int subId) {
+        return isUserDataEnabled(subId);
+    }
+
+    /**
+     * Get whether mobile data is enabled per user setting.
+     *
+     * There are other factors deciding whether mobile data is actually enabled, but they are
+     * not considered here. See {@link #isDataEnabled(int)} for more details.
      *
      * Accepts either ACCESS_NETWORK_STATE, MODIFY_PHONE_STATE or carrier privileges.
      *
      * @return {@code true} if data is enabled else {@code false}
      */
     @Override
-    public boolean getDataEnabled(int subId) {
+    public boolean isUserDataEnabled(int subId) {
         try {
             mApp.enforceCallingOrSelfPermission(android.Manifest.permission.ACCESS_NETWORK_STATE,
                     null);
@@ -2768,14 +2804,45 @@ public class PhoneInterfaceManager extends ITelephony.Stub {
             enforceModifyPermissionOrCarrierPrivilege(subId);
         }
         int phoneId = mSubscriptionController.getPhoneId(subId);
-        if (DBG) log("getDataEnabled: subId=" + subId + " phoneId=" + phoneId);
+        if (DBG) log("isUserDataEnabled: subId=" + subId + " phoneId=" + phoneId);
         Phone phone = PhoneFactory.getPhone(phoneId);
         if (phone != null) {
-            boolean retVal = phone.getDataEnabled();
-            if (DBG) log("getDataEnabled: subId=" + subId + " retVal=" + retVal);
+            boolean retVal = phone.isUserDataEnabled();
+            if (DBG) log("isUserDataEnabled: subId=" + subId + " retVal=" + retVal);
             return retVal;
         } else {
-            if (DBG) loge("getDataEnabled: no phone subId=" + subId + " retVal=false");
+            if (DBG) loge("isUserDataEnabled: no phone subId=" + subId + " retVal=false");
+            return false;
+        }
+    }
+
+    /**
+     * Get whether mobile data is enabled.
+     *
+     * Comparable to {@link #isUserDataEnabled(int)}, this considers all factors deciding
+     * whether mobile data is actually enabled.
+     *
+     * Accepts either ACCESS_NETWORK_STATE, MODIFY_PHONE_STATE or carrier privileges.
+     *
+     * @return {@code true} if data is enabled else {@code false}
+     */
+    @Override
+    public boolean isDataEnabled(int subId) {
+        try {
+            mApp.enforceCallingOrSelfPermission(android.Manifest.permission.ACCESS_NETWORK_STATE,
+                    null);
+        } catch (Exception e) {
+            enforceModifyPermissionOrCarrierPrivilege(subId);
+        }
+        int phoneId = mSubscriptionController.getPhoneId(subId);
+        if (DBG) log("isDataEnabled: subId=" + subId + " phoneId=" + phoneId);
+        Phone phone = PhoneFactory.getPhone(phoneId);
+        if (phone != null) {
+            boolean retVal = phone.isDataEnabled();
+            if (DBG) log("isDataEnabled: subId=" + subId + " retVal=" + retVal);
+            return retVal;
+        } else {
+            if (DBG) loge("isDataEnabled: no phone subId=" + subId + " retVal=false");
             return false;
         }
     }
@@ -3067,39 +3134,6 @@ public class PhoneInterfaceManager extends ITelephony.Stub {
     }
 
     @Override
-    @Deprecated
-    public int invokeOemRilRequestRaw(byte[] oemReq, byte[] oemResp) {
-        enforceModifyPermission();
-
-        int returnValue = 0;
-        try {
-            AsyncResult result = (AsyncResult)sendRequest(CMD_INVOKE_OEM_RIL_REQUEST_RAW, oemReq);
-            if(result.exception == null) {
-                if (result.result != null) {
-                    byte[] responseData = (byte[])(result.result);
-                    if(responseData.length > oemResp.length) {
-                        Log.w(LOG_TAG, "Buffer to copy response too small: Response length is " +
-                                responseData.length +  "bytes. Buffer Size is " +
-                                oemResp.length + "bytes.");
-                    }
-                    System.arraycopy(responseData, 0, oemResp, 0, responseData.length);
-                    returnValue = responseData.length;
-                }
-            } else {
-                CommandException ex = (CommandException) result.exception;
-                returnValue = ex.getCommandError().ordinal();
-                if(returnValue > 0) returnValue *= -1;
-            }
-        } catch (RuntimeException e) {
-            Log.w(LOG_TAG, "sendOemRilRequestRaw: Runtime Exception");
-            returnValue = (CommandException.Error.GENERIC_FAILURE.ordinal());
-            if(returnValue > 0) returnValue *= -1;
-        }
-
-        return returnValue;
-    }
-
-    @Override
     public void setRadioCapability(RadioAccessFamily[] rafs) {
         try {
             ProxyController.getInstance().setRadioCapability(rafs);
@@ -3120,7 +3154,7 @@ public class PhoneInterfaceManager extends ITelephony.Stub {
     @Override
     public void enableVideoCalling(boolean enable) {
         enforceModifyPermission();
-        ImsManager.setVtSetting(mPhone.getContext(), enable);
+        ImsManager.getInstance(mPhone.getContext(), mPhone.getPhoneId()).setVtSetting(enable);
     }
 
     @Override
@@ -3133,9 +3167,10 @@ public class PhoneInterfaceManager extends ITelephony.Stub {
         // enabled video calling, if IMS is disabled we aren't able to support video calling.
         // In the long run, we may instead need to check if there exists a connection service
         // which can support video calling.
-        return ImsManager.isVtEnabledByPlatform(mPhone.getContext())
-                && ImsManager.isEnhanced4gLteModeSettingEnabledByUser(mPhone.getContext())
-                && ImsManager.isVtEnabledByUser(mPhone.getContext());
+        ImsManager imsManager = ImsManager.getInstance(mPhone.getContext(), mPhone.getPhoneId());
+        return imsManager.isVtEnabledByPlatform()
+                && imsManager.isEnhanced4gLteModeSettingEnabledByUser()
+                && imsManager.isVtEnabledByUser();
     }
 
     @Override
@@ -3312,13 +3347,15 @@ public class PhoneInterfaceManager extends ITelephony.Stub {
             if (SubscriptionManager.isUsableSubIdValue(subId) && !mUserManager.hasUserRestriction(
                     UserManager.DISALLOW_CONFIG_MOBILE_NETWORKS)) {
                 // Enable data
-                setDataEnabled(subId, true);
+                setUserDataEnabled(subId, true);
                 // Set network selection mode to automatic
                 setNetworkSelectionModeAutomatic(subId);
                 // Set preferred mobile network type to the best available
                 setPreferredNetworkType(subId, Phone.PREFERRED_NT_MODE);
                 // Turn off roaming
                 mPhone.setDataRoamingEnabled(false);
+                // Remove IMSI encryption keys from Carrier DB.
+                CarrierInfoManager.deleteAllCarrierKeysForImsiEncryption(mPhone.getContext());
             }
         } finally {
             Binder.restoreCallingIdentity(identity);
@@ -3874,7 +3911,9 @@ public class PhoneInterfaceManager extends ITelephony.Stub {
      * @return true if phone is in emergency callback mode
      * @param subId sub id
      */
+    @Override
     public boolean getEmergencyCallbackMode(int subId) {
+        enforceReadPrivilegedPermission();
         final Phone phone = getPhone(subId);
         if (phone != null) {
             return phone.isInEcm();

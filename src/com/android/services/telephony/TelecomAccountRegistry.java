@@ -82,6 +82,7 @@ final class TelecomAccountRegistry {
         private boolean mIsMergeImsCallSupported;
         private boolean mIsVideoConferencingSupported;
         private boolean mIsMergeOfWifiCallsAllowedWhenVoWifiOff;
+        private boolean mIsManageImsConferenceCallSupported;
 
         AccountEntry(Phone phone, boolean isEmergency, boolean isDummy) {
             mPhone = phone;
@@ -183,8 +184,8 @@ final class TelecomAccountRegistry {
             }
 
             mIsVideoCapable = mPhone.isVideoEnabled();
-            boolean isVideoEnabledByPlatform =
-                    ImsManager.isVtEnabledByPlatform(mPhone.getContext());
+            boolean isVideoEnabledByPlatform = ImsManager.getInstance(mPhone.getContext(),
+                    mPhone.getPhoneId()).isVtEnabledByPlatform();
 
             if (!mIsPrimaryUser) {
                 Log.i(this, "Disabling video calling for secondary user.");
@@ -225,6 +226,12 @@ final class TelecomAccountRegistry {
                         isHandoverFromSupported);
             }
 
+            boolean isDeviceRttSupported = mContext.getResources().getBoolean(
+                    R.bool.config_support_rtt);
+            if (isDeviceRttSupported && isCarrierRttSupported()) {
+                capabilities |= PhoneAccount.CAPABILITY_RTT;
+            }
+
             extras.putBoolean(PhoneAccount.EXTRA_SUPPORTS_VIDEO_CALLING_FALLBACK,
                     mContext.getResources()
                             .getBoolean(R.bool.config_support_video_calling_fallback));
@@ -239,6 +246,7 @@ final class TelecomAccountRegistry {
             mIsVideoConferencingSupported = isCarrierVideoConferencingSupported();
             mIsMergeOfWifiCallsAllowedWhenVoWifiOff =
                     isCarrierMergeOfWifiCallsAllowedWhenVoWifiOff();
+            mIsManageImsConferenceCallSupported = isCarrierManageImsConferenceCallSupported();
 
             if (isEmergency && mContext.getResources().getBoolean(
                     R.bool.config_emergency_account_emergency_calls_only)) {
@@ -388,6 +396,12 @@ final class TelecomAccountRegistry {
                     b.getBoolean(CarrierConfigManager.KEY_SUPPORT_VIDEO_CONFERENCE_CALL_BOOL);
         }
 
+        private boolean isCarrierRttSupported() {
+            PersistableBundle b =
+                    PhoneGlobals.getInstance().getCarrierConfigForSubId(mPhone.getSubId());
+            return b != null && b.getBoolean(CarrierConfigManager.KEY_RTT_SUPPORTED_BOOL);
+        }
+
         /**
          * Determines from carrier config whether merging of wifi calls is allowed when VoWIFI is
          * turned off.
@@ -403,8 +417,21 @@ final class TelecomAccountRegistry {
         }
 
         /**
+         * Determines from carrier config whether managing IMS conference calls is supported.
+         *
+         * @return {@code true} if managing IMS conference calls is supported,
+         *         {@code false} otherwise.
+         */
+        private boolean isCarrierManageImsConferenceCallSupported() {
+            PersistableBundle b =
+                    PhoneGlobals.getInstance().getCarrierConfigForSubId(mPhone.getSubId());
+            return b.getBoolean(CarrierConfigManager.KEY_SUPPORT_MANAGE_IMS_CONFERENCE_CALL_BOOL);
+        }
+
+        /**
          * Where a device supports instant lettering and call subjects, retrieves the necessary
          * PhoneAccount extras for those features.
+         *
          * @return The {@link PhoneAccount} extras associated with the current subscription.
          */
         private Bundle getPhoneAccountExtras() {
@@ -483,6 +510,15 @@ final class TelecomAccountRegistry {
          */
         public boolean isMergeOfWifiCallsAllowedWhenVoWifiOff() {
             return mIsMergeOfWifiCallsAllowedWhenVoWifiOff;
+        }
+
+        /**
+         * Indicates whether this account supports managing IMS conference calls
+         * @return {@code true} if the account supports managing IMS conference calls,
+         *         {@code false} otherwise.
+         */
+        public boolean isManageImsConferenceCallSupported() {
+            return mIsManageImsConferenceCallSupported;
         }
     }
 
@@ -646,6 +682,24 @@ final class TelecomAccountRegistry {
             for (AccountEntry entry : mAccounts) {
                 if (entry.getPhoneAccountHandle().equals(handle)) {
                     return entry.isMergeImsCallSupported();
+                }
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Determines if the {@link AccountEntry} associated with a {@link PhoneAccountHandle} supports
+     * managing IMS conference calls.
+     *
+     * @param handle The {@link PhoneAccountHandle}.
+     * @return {@code True} if managing IMS conference calls is supported.
+     */
+    boolean isManageImsConferenceCallSupported(PhoneAccountHandle handle) {
+        synchronized (mAccountsLock) {
+            for (AccountEntry entry : mAccounts) {
+                if (entry.getPhoneAccountHandle().equals(handle)) {
+                    return entry.isManageImsConferenceCallSupported();
                 }
             }
         }

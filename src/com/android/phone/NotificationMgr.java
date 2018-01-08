@@ -162,7 +162,7 @@ public class NotificationMgr {
     /* package */ void refreshMwi(int subId) {
         // In a single-sim device, subId can be -1 which means "no sub id".  In this case we will
         // reference the single subid stored in the mMwiVisible map.
-        if (subId == SubscriptionInfoHelper.NO_SUB_ID) {
+        if (subId == SubscriptionManager.INVALID_SUBSCRIPTION_ID) {
             if (mMwiVisible.keySet().size() == 1) {
                 Set<Integer> keySet = mMwiVisible.keySet();
                 Iterator<Integer> keyIt = keySet.iterator();
@@ -444,9 +444,19 @@ public class NotificationMgr {
     /**
      * Updates the message call forwarding indicator notification.
      *
-     * @param visible true if there are messages waiting
+     * @param visible true if call forwarding enabled
      */
-    /* package */ void updateCfi(int subId, boolean visible) {
+
+     /* package */ void updateCfi(int subId, boolean visible) {
+        updateCfi(subId, visible, false /* isRefresh */);
+    }
+
+    /**
+     * Updates the message call forwarding indicator notification.
+     *
+     * @param visible true if call forwarding enabled
+     */
+    /* package */ void updateCfi(int subId, boolean visible, boolean isRefresh) {
         logi("updateCfi: subId= " + subId + ", visible=" + (visible ? "Y" : "N"));
         if (visible) {
             // If Unconditional Call Forwarding (forward all calls) for VOICE
@@ -484,7 +494,8 @@ public class NotificationMgr {
                     .setContentText(mContext.getString(R.string.sum_cfu_enabled_indicator))
                     .setShowWhen(false)
                     .setOngoing(true)
-                    .setChannel(NotificationChannelController.CHANNEL_ID_CALL_FORWARD);
+                    .setChannel(NotificationChannelController.CHANNEL_ID_CALL_FORWARD)
+                    .setOnlyAlertOnce(isRefresh);
 
             Intent intent = new Intent(Intent.ACTION_MAIN);
             intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP);
