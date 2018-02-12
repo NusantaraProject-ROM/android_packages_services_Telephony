@@ -33,12 +33,13 @@ import android.telecom.StatusHints;
 import android.telecom.TelecomManager;
 import android.telecom.VideoProfile;
 import android.telephony.CarrierConfigManager;
+import android.telephony.DisconnectCause;
 import android.telephony.PhoneNumberUtils;
 import android.telephony.TelephonyManager;
+import android.telephony.ims.ImsCallProfile;
 import android.util.Pair;
 
 import com.android.ims.ImsCall;
-import com.android.ims.ImsCallProfile;
 import com.android.internal.telephony.Call;
 import com.android.internal.telephony.CallFailCause;
 import com.android.internal.telephony.CallStateException;
@@ -443,6 +444,22 @@ abstract class TelephonyConnection extends Connection implements Holdable {
                 sendRttInitiationFailure(status);
             }
         }
+
+        @Override
+        public void onDisconnect(int cause) {
+            Log.i(this, "onDisconnect: cause=%s", DisconnectCause.toString(cause));
+            mHandler.obtainMessage(MSG_DISCONNECT);
+        }
+
+        @Override
+        public void onRttInitiated() {
+            sendRttInitiationSuccess();
+        }
+
+        @Override
+        public void onRttTerminated() {
+            sendRttSessionRemotelyTerminated();
+        }
     };
 
     protected com.android.internal.telephony.Connection mOriginalConnection;
@@ -451,6 +468,7 @@ abstract class TelephonyConnection extends Connection implements Holdable {
     private boolean mIsStateOverridden = false;
     private Call.State mOriginalConnectionState = Call.State.IDLE;
     private Call.State mConnectionOverriddenState = Call.State.IDLE;
+    private RttTextStream mRttTextStream = null;
 
     private boolean mWasImsConnection;
 
@@ -845,6 +863,8 @@ abstract class TelephonyConnection extends Connection implements Holdable {
                 mIsCdmaVoicePrivacyEnabled);
         newProperties = changeBitmask(newProperties, PROPERTY_ASSISTED_DIALING_USED,
                 mIsUsingAssistedDialing);
+        newProperties = changeBitmask(newProperties, PROPERTY_IS_RTT,
+                (getConnectionProperties() & PROPERTY_IS_RTT) != 0);
 
         if (getConnectionProperties() != newProperties) {
             setConnectionProperties(newProperties);
@@ -916,7 +936,6 @@ abstract class TelephonyConnection extends Connection implements Holdable {
         getPhone().registerForHandoverStateChanged(
                 mHandler, MSG_HANDOVER_STATE_CHANGED, null);
         getPhone().registerForRingbackTone(mHandler, MSG_RINGBACK_TONE, null);
-        getPhone().registerForDisconnect(mHandler, MSG_DISCONNECT, null);
         getPhone().registerForSuppServiceNotification(mHandler, MSG_SUPP_SERVICE_NOTIFY, null);
         getPhone().registerForOnHoldTone(mHandler, MSG_ON_HOLD_TONE, null);
         getPhone().registerForInCallVoicePrivacyOn(mHandler, MSG_CDMA_VOICE_PRIVACY_ON, null);
@@ -1067,10 +1086,16 @@ abstract class TelephonyConnection extends Connection implements Holdable {
                 b != null && b.getBoolean(CarrierConfigManager.KEY_WIFI_CALLS_CAN_BE_HD_AUDIO);
         boolean canVideoCallsBeHdAudio =
                 b != null && b.getBoolean(CarrierConfigManager.KEY_VIDEO_CALLS_CAN_BE_HD_AUDIO);
+        boolean canGsmCdmaCallsBeHdAudio =
+                b != null && b.getBoolean(CarrierConfigManager.KEY_GSM_CDMA_CALLS_CAN_BE_HD_AUDIO);
         boolean shouldDisplayHdAudio =
                 b != null && b.getBoolean(CarrierConfigManager.KEY_DISPLAY_HD_AUDIO_PROPERTY_BOOL);
 
         if (!shouldDisplayHdAudio) {
+            return false;
+        }
+
+        if (isGsmCdmaConnection() && !canGsmCdmaCallsBeHdAudio) {
             return false;
         }
 
@@ -1356,7 +1381,8 @@ abstract class TelephonyConnection extends Connection implements Holdable {
             newState = mOriginalConnection.getState();
         }
         int cause = mOriginalConnection.getDisconnectCause();
-        Log.v(this, "Update state from %s to %s for %s", mConnectionState, newState, this);
+        Log.v(this, "Update state from %s to %s for %s", mConnectionState, newState,
+                getTelecomCallId());
 
         if (mConnectionState != newState) {
             mConnectionState = newState;
@@ -1662,6 +1688,14 @@ abstract class TelephonyConnection extends Connection implements Holdable {
         return false;
     }
 
+    public void setRttTextStream(RttTextStream s) {
+        mRttTextStream = s;
+    }
+
+    public RttTextStream getRttTextStream() {
+        return mRttTextStream;
+    }
+
     /**
      * For video calls, sets whether this connection supports pausing the outgoing video for the
      * call using the {@link android.telecom.VideoProfile#STATE_PAUSED} VideoState.
@@ -1734,6 +1768,25 @@ abstract class TelephonyConnection extends Connection implements Holdable {
         com.android.internal.telephony.Connection originalConnection = getOriginalConnection();
         return originalConnection != null &&
                 originalConnection.getPhoneType() == PhoneConstants.PHONE_TYPE_IMS;
+    }
+
+    /**
+     * Whether the original connection is an GSM/CDMA connection.
+     * @return {@code True} if the original connection is an GSM/CDMA connection, {@code false}
+     *     otherwise.
+     */
+    protected boolean isGsmCdmaConnection() {
+        Phone phone = getPhone();
+        if (phone != null) {
+            switch (phone.getPhoneType()) {
+                case PhoneConstants.PHONE_TYPE_GSM:
+                case PhoneConstants.PHONE_TYPE_CDMA:
+                    return true;
+                default:
+                    return false;
+            }
+        }
+        return false;
     }
 
     /**
@@ -1828,7 +1881,7 @@ abstract class TelephonyConnection extends Connection implements Holdable {
     @Override
     public void setHoldable(boolean isHoldable) {
         mIsHoldable = isHoldable;
-        buildConnectionCapabilities();
+        updateConnectionCapabilities();
     }
 
     @Override
