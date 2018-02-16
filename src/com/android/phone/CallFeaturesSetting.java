@@ -142,8 +142,13 @@ public class CallFeaturesSetting extends PreferenceActivity
                         new Dialog.OnClickListener() {
                             @Override
                             public void onClick(DialogInterface dialog, int which) {
-                                startActivity(new Intent(mPhone.getContext(),
-                                        com.android.phone.MobileNetworkSettings.class));
+                                if (PhoneUtils.isNetworkSettingsApkAvailable()) {
+                                    startActivity(new Intent(
+                                            "codeaurora.intent.action.MOBILE_NETWORK_SETTINGS"));
+                                } else {
+                                    startActivity(new Intent(mPhone.getContext(),
+                                            com.android.phone.MobileNetworkSettings.class));
+                                }
                             }
                         };
                 builder.setMessage(getResources().getString(
