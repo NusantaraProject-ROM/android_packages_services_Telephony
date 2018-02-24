@@ -25,6 +25,9 @@ import android.content.ComponentName;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.pm.ApplicationInfo;
+import android.content.pm.PackageManager;
+import android.content.pm.ResolveInfo;
 import android.content.res.Configuration;
 import android.media.AudioManager;
 import android.net.Uri;
@@ -32,6 +35,7 @@ import android.os.Handler;
 import android.os.Message;
 import android.os.PersistableBundle;
 import android.os.RemoteException;
+import android.os.ServiceManager;
 import android.os.SystemProperties;
 import android.telecom.PhoneAccount;
 import android.telecom.PhoneAccountHandle;
@@ -67,6 +71,8 @@ import com.android.phone.CallGatewayManager.RawGatewayInfo;
 
 import java.util.Arrays;
 import java.util.List;
+
+import org.codeaurora.internal.IExtTelephony;
 
 /**
  * Misc utilities for the Phone app.
@@ -2492,5 +2498,26 @@ public class PhoneUtils {
         for (Phone phone : PhoneFactory.getPhones()) {
             phone.setRadioPower(enabled);
         }
+    }
+
+    /**
+     * check whether NetworkSetting apk exist in system, if yes, return true, else
+     * return false.
+     */
+    public static boolean isNetworkSettingsApkAvailable() {
+        // check whether the target handler exist in system
+        boolean isVendorNetworkSettingApkAvailable = false;
+        IExtTelephony extTelephony =
+                IExtTelephony.Stub.asInterface(ServiceManager.getService("extphone"));
+        try {
+            if (extTelephony != null &&
+                    extTelephony.isVendorApkAvailable("com.qualcomm.qti.networksetting")) {
+                isVendorNetworkSettingApkAvailable = true;
+            }
+        } catch (RemoteException ex) {
+            // could not connect to extphone service, launch the default activity
+            log("couldn't connect to extphone service, launch the default activity");
+        }
+        return isVendorNetworkSettingApkAvailable;
     }
 }
