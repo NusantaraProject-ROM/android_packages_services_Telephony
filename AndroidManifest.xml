@@ -80,6 +80,10 @@
     <protected-broadcast android:name= "com.android.internal.telephony.CARRIER_VVM_PACKAGE_INSTALLED" />
     <protected-broadcast android:name= "com.android.cellbroadcastreceiver.GET_LATEST_CB_AREA_INFO" />
     <protected-broadcast android:name= "android.intent.action.CURRENT_CARRIER_IDENTITY_CHANGED" />
+    <protected-broadcast android:name= "com.android.internal.telephony.ACTION_CARRIER_CERTIFICATE_DOWNLOAD" />
+    <protected-broadcast android:name= "android.telephony.action.SIM_CARD_STATE_CHANGED" />
+    <protected-broadcast android:name= "android.telephony.action.SIM_APPLICATION_STATE_CHANGED" />
+    <protected-broadcast android:name= "android.telephony.action.SIM_SLOT_STATUS_CHANGED" />
 
     <uses-permission android:name="android.permission.BROADCAST_STICKY" />
     <uses-permission android:name="android.permission.CALL_PHONE" />
@@ -581,6 +585,17 @@
                 android:excludeFromRecents="true"
                 android:launchMode="singleInstance"
                 android:theme="@style/Empty">
+        </activity>
+
+        <activity
+            android:name="com.android.phone.settings.assisteddialing.AssistedDialingSettingActivity"
+            android:label="@string/assisted_dialing_setting_title"
+            android:theme="@style/DialerSettingsLight">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <action android:name="android.telecom.action.SHOW_ASSISTED_DIALING_SETTINGS" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
         </activity>
 
         <activity android:name="com.android.phone.settings.PhoneAccountSettingsActivity"

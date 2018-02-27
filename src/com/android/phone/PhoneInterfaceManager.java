@@ -39,6 +39,7 @@ import android.os.Looper;
 import android.os.Message;
 import android.os.Messenger;
 import android.os.PersistableBundle;
+import android.os.RemoteException;
 import android.os.ResultReceiver;
 import android.os.ServiceManager;
 import android.os.UserHandle;
@@ -66,6 +67,7 @@ import android.telephony.SubscriptionInfo;
 import android.telephony.SubscriptionManager;
 import android.telephony.TelephonyHistogram;
 import android.telephony.TelephonyManager;
+import android.telephony.UiccSlotInfo;
 import android.telephony.UssdResponse;
 import android.telephony.VisualVoicemailSmsFilterSettings;
 import android.text.TextUtils;
@@ -77,6 +79,7 @@ import android.util.Slog;
 import com.android.ims.ImsManager;
 import com.android.ims.internal.IImsMMTelFeature;
 import com.android.ims.internal.IImsRcsFeature;
+import com.android.ims.internal.IImsRegistration;
 import com.android.ims.internal.IImsServiceFeatureCallback;
 import com.android.internal.telephony.CallManager;
 import com.android.internal.telephony.CallStateException;
@@ -105,6 +108,7 @@ import com.android.internal.telephony.uicc.SIMRecords;
 import com.android.internal.telephony.uicc.UiccCard;
 import com.android.internal.telephony.uicc.UiccCardApplication;
 import com.android.internal.telephony.uicc.UiccController;
+import com.android.internal.telephony.uicc.UiccSlot;
 import com.android.internal.telephony.util.VoicemailNotificationSettingsUtil;
 import com.android.internal.util.HexDump;
 import com.android.phone.vvm.PhoneAccountHandleConverter;
@@ -177,6 +181,8 @@ public class PhoneInterfaceManager extends ITelephony.Stub {
     private static final int CMD_HANDLE_USSD_REQUEST = 47;
     private static final int CMD_GET_FORBIDDEN_PLMNS = 48;
     private static final int EVENT_GET_FORBIDDEN_PLMNS_DONE = 49;
+    private static final int CMD_SWITCH_SLOTS = 50;
+    private static final int EVENT_SWITCH_SLOTS_DONE = 51;
 
     /** The singleton instance. */
     private static PhoneInterfaceManager sInstance;
@@ -939,6 +945,22 @@ public class PhoneInterfaceManager extends ITelephony.Stub {
                               onCompleted);
                     break;
 
+                case CMD_SWITCH_SLOTS:
+                    request = (MainThreadRequest) msg.obj;
+                    int[] physicalSlots = (int[]) request.argument;
+                    onCompleted = obtainMessage(EVENT_SWITCH_SLOTS_DONE, request);
+                    UiccController.getInstance().switchSlots(physicalSlots, onCompleted);
+                    break;
+
+                case EVENT_SWITCH_SLOTS_DONE:
+                    ar = (AsyncResult) msg.obj;
+                    request = (MainThreadRequest) ar.userObj;
+                    request.result = (ar.exception == null);
+                    synchronized (request) {
+                        request.notifyAll();
+                    }
+                    break;
+
                 default:
                     Log.w(LOG_TAG, "MainThreadHandler: unexpected message code: " + msg.what);
                     break;
@@ -1636,7 +1658,7 @@ public class PhoneInterfaceManager extends ITelephony.Stub {
             return null;
         }
 
-        WorkSource workSource = getWorkSource(null, Binder.getCallingUid());
+        WorkSource workSource = getWorkSource(Binder.getCallingUid());
         phone.getCellLocation(workSource).fillInNotifierBundle(data);
         return data;
     }
@@ -1706,7 +1728,7 @@ public class PhoneInterfaceManager extends ITelephony.Stub {
 
         ArrayList<NeighboringCellInfo> cells = null;
 
-        WorkSource workSource = getWorkSource(null, Binder.getCallingUid());
+        WorkSource workSource = getWorkSource(Binder.getCallingUid());
         try {
             cells = (ArrayList<NeighboringCellInfo>) sendRequest(
                     CMD_HANDLE_NEIGHBORING_CELL, workSource,
@@ -1726,7 +1748,7 @@ public class PhoneInterfaceManager extends ITelephony.Stub {
         }
 
         if (DBG_LOC) log("getAllCellInfo: is active user");
-        WorkSource workSource = getWorkSource(null, Binder.getCallingUid());
+        WorkSource workSource = getWorkSource(Binder.getCallingUid());
         List<CellInfo> cellInfos = new ArrayList<CellInfo>();
         for (Phone phone : PhoneFactory.getPhones()) {
             final List<CellInfo> info = phone.getAllCellInfo(workSource);
@@ -1738,7 +1760,7 @@ public class PhoneInterfaceManager extends ITelephony.Stub {
     @Override
     public void setCellInfoListRate(int rateInMillis) {
         enforceModifyPermission();
-        WorkSource workSource = getWorkSource(null, Binder.getCallingUid());
+        WorkSource workSource = getWorkSource(Binder.getCallingUid());
         mPhone.setCellInfoListRate(rateInMillis, workSource);
     }
 
@@ -2604,6 +2626,15 @@ public class PhoneInterfaceManager extends ITelephony.Stub {
         return PhoneFactory.getImsResolver().getRcsFeatureAndListen(slotId, callback);
     }
 
+    /**
+     * Returns the {@link IImsRegistration} structure associated with the slotId and feature
+     * specified.
+     */
+    public IImsRegistration getImsRegistration(int slotId, int feature) throws RemoteException {
+        enforceModifyPermission();
+        return PhoneFactory.getImsResolver().getImsRegistration(slotId, feature);
+    }
+
     public void setImsRegistrationState(boolean registered) {
         enforceModifyPermission();
         mPhone.setImsRegistrationState(registered);
@@ -3443,20 +3474,50 @@ public class PhoneInterfaceManager extends ITelephony.Stub {
         }
     }
 
+    private final ModemActivityInfo mLastModemActivityInfo =
+            new ModemActivityInfo(0, 0, 0, new int[0], 0, 0);
+
     /**
      * Responds to the ResultReceiver with the {@link android.telephony.ModemActivityInfo} object
      * representing the state of the modem.
      *
-     * NOTE: This clears the modem state, so there should only every be one caller.
+     * NOTE: The underlying implementation clears the modem state, so there should only ever be one
+     * caller to it. Everyone should call this class to get cumulative data.
      * @hide
      */
     @Override
     public void requestModemActivityInfo(ResultReceiver result) {
         enforceModifyPermission();
-
-        ModemActivityInfo info = (ModemActivityInfo) sendRequest(CMD_GET_MODEM_ACTIVITY_INFO, null);
+        ModemActivityInfo ret = null;
+        synchronized (mLastModemActivityInfo) {
+            ModemActivityInfo info = (ModemActivityInfo) sendRequest(CMD_GET_MODEM_ACTIVITY_INFO,
+                    null);
+            if (info != null) {
+                int[] mergedTxTimeMs = new int[ModemActivityInfo.TX_POWER_LEVELS];
+                for (int i = 0; i < mergedTxTimeMs.length; i++) {
+                    mergedTxTimeMs[i] =
+                            info.getTxTimeMillis()[i] + mLastModemActivityInfo.getTxTimeMillis()[i];
+                }
+                mLastModemActivityInfo.setTimestamp(info.getTimestamp());
+                mLastModemActivityInfo.setSleepTimeMillis(
+                        info.getSleepTimeMillis() + mLastModemActivityInfo.getSleepTimeMillis());
+                mLastModemActivityInfo.setIdleTimeMillis(
+                        info.getIdleTimeMillis() + mLastModemActivityInfo.getIdleTimeMillis());
+                mLastModemActivityInfo.setTxTimeMillis(mergedTxTimeMs);
+                mLastModemActivityInfo.setRxTimeMillis(
+                        info.getRxTimeMillis() + mLastModemActivityInfo.getRxTimeMillis());
+                mLastModemActivityInfo.setEnergyUsed(
+                        info.getEnergyUsed() + mLastModemActivityInfo.getEnergyUsed());
+            }
+            ret = new ModemActivityInfo(mLastModemActivityInfo.getTimestamp(),
+                    mLastModemActivityInfo.getSleepTimeMillis(),
+                    mLastModemActivityInfo.getIdleTimeMillis(),
+                    mLastModemActivityInfo.getTxTimeMillis(),
+                    mLastModemActivityInfo.getRxTimeMillis(),
+                    mLastModemActivityInfo.getEnergyUsed());
+        }
         Bundle bundle = new Bundle();
-        bundle.putParcelable(TelephonyManager.MODEM_ACTIVITY_RESULT_KEY, info);
+        bundle.putParcelable(TelephonyManager.MODEM_ACTIVITY_RESULT_KEY, ret);
         result.send(0, bundle);
     }
 
@@ -3861,14 +3922,9 @@ public class PhoneInterfaceManager extends ITelephony.Stub {
         return null;
     }
 
-    private WorkSource getWorkSource(WorkSource workSource, int uid) {
-        if (workSource != null) {
-            return workSource;
-        }
-
+    private WorkSource getWorkSource(int uid) {
         String packageName = mPhone.getContext().getPackageManager().getNameForUid(uid);
-        workSource = new WorkSource(uid, packageName);
-        return workSource;
+        return new WorkSource(uid, packageName);
     }
 
     /**
@@ -3937,5 +3993,47 @@ public class PhoneInterfaceManager extends ITelephony.Stub {
         }
 
         return p.getSignalStrength();
+    }
+
+    @Override
+    public UiccSlotInfo[] getUiccSlotsInfo() {
+        enforceReadPrivilegedPermission();
+
+        UiccSlot[] slots = UiccController.getInstance().getUiccSlots();
+        if (slots == null) return null;
+        UiccSlotInfo[] infos = new UiccSlotInfo[slots.length];
+        for (int i = 0; i < slots.length; i++) {
+            UiccSlot slot = slots[i];
+
+            String cardId = UiccController.getInstance().getUiccCard(i).getCardId();
+
+            int cardState = 0;
+            switch (slot.getCardState()) {
+                case CARDSTATE_ABSENT:
+                    cardState = UiccSlotInfo.CARD_STATE_INFO_ABSENT;
+                    break;
+                case CARDSTATE_PRESENT:
+                    cardState = UiccSlotInfo.CARD_STATE_INFO_PRESENT;
+                    break;
+                case CARDSTATE_ERROR:
+                    cardState = UiccSlotInfo.CARD_STATE_INFO_ERROR;
+                    break;
+                case CARDSTATE_RESTRICTED:
+                    cardState = UiccSlotInfo.CARD_STATE_INFO_RESTRICTED;
+                    break;
+                default:
+                    break;
+
+            }
+
+            infos[i] = new UiccSlotInfo(slot.isActive(), slot.isEuicc(), cardId, cardState);
+        }
+        return infos;
+    }
+
+    @Override
+    public boolean switchSlots(int[] physicalSlots) {
+        enforceModifyPermission();
+        return (Boolean) sendRequest(CMD_SWITCH_SLOTS, physicalSlots);
     }
 }
