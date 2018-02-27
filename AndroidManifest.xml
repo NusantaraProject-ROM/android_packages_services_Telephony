@@ -79,7 +79,6 @@
     <protected-broadcast android:name= "com.android.phone.vvm.ACTION_VISUAL_VOICEMAIL_SERVICE_EVENT" />
     <protected-broadcast android:name= "com.android.internal.telephony.CARRIER_VVM_PACKAGE_INSTALLED" />
     <protected-broadcast android:name= "com.android.cellbroadcastreceiver.GET_LATEST_CB_AREA_INFO" />
-    <protected-broadcast android:name= "android.intent.action.CURRENT_CARRIER_IDENTITY_CHANGED" />
     <protected-broadcast android:name= "com.android.internal.telephony.ACTION_CARRIER_CERTIFICATE_DOWNLOAD" />
     <protected-broadcast android:name= "android.telephony.action.SIM_CARD_STATE_CHANGED" />
     <protected-broadcast android:name= "android.telephony.action.SIM_APPLICATION_STATE_CHANGED" />
@@ -93,6 +92,7 @@
     <protected-broadcast android:name= "org.codeaurora.intent.action.ACTION_RADIO_CAPABILITY_UPDATED" />
     <protected-broadcast android:name= "org.codeaurora.intent.action.ACTION_NETWORK_SPECIFIER_SET" />
     <protected-broadcast android:name= "org.codeaurora.intent.action.ACTION_DDS_SWITCH_DONE" />
+    <protected-broadcast android:name= "android.telephony.action.SUBSCRIPTION_CARRIER_IDENTITY_CHANGED" />
 
     <uses-permission android:name="android.permission.BROADCAST_STICKY" />
     <uses-permission android:name="android.permission.CALL_PHONE" />
@@ -163,9 +163,9 @@
     <uses-permission android:name="android.permission.BIND_CARRIER_SERVICES" />
     <!-- BIND_CARRIER_MESSAGING_SERVICE has been deprecated in favor of BIND_CARRIER_SERVICES. -->
     <uses-permission android:name="android.permission.BIND_CARRIER_MESSAGING_SERVICE" />
-    <uses-permission android:name="com.android.permission.BIND_EUICC_SERVICE" />
+    <uses-permission android:name="android.permission.BIND_EUICC_SERVICE" />
     <uses-permission android:name="com.android.permission.BIND_TELEPHONY_NETWORK_SERVICE" />
-    <uses-permission android:name="com.android.permission.WRITE_EMBEDDED_SUBSCRIPTIONS" />
+    <uses-permission android:name="android.permission.WRITE_EMBEDDED_SUBSCRIPTIONS" />
     <uses-permission android:name="android.permission.READ_SYNC_SETTINGS" />
     <uses-permission android:name="android.permission.WRITE_SYNC_SETTINGS" />
     <uses-permission android:name="android.permission.AUTHENTICATE_ACCOUNTS" />
@@ -182,6 +182,7 @@
     <uses-permission android:name="android.permission.READ_BLOCKED_NUMBERS" />
     <!-- Needed for emergency contact notification. -->
     <uses-permission android:name="android.permission.WRITE_BLOCKED_NUMBERS" />
+    <uses-permission android:name="android.permission.NETWORK_SETTINGS" />
 
     <!-- This tells the activity manager to not delay any of our activity
          start requests, even if they happen immediately after the user
@@ -250,104 +251,9 @@
             </intent-filter>
         </activity>
 
-        <activity android:name="OutgoingCallBroadcaster"
-                android:enabled="false"
-                android:theme="@style/OutgoingCallBroadcasterTheme"
-                android:permission="android.permission.CALL_PHONE"
-                android:screenOrientation="nosensor"
-                android:configChanges="orientation|screenSize|keyboardHidden"
-                android:excludeFromRecents="true">
-            <!-- CALL action intent filters, for the various ways
-                 of initiating an outgoing call. -->
-            <intent-filter>
-                <action android:name="android.intent.action.CALL" />
-                <category android:name="android.intent.category.DEFAULT" />
-                <data android:scheme="tel" />
-            </intent-filter>
-            <intent-filter android:icon="@drawable/ic_launcher_sip_call">
-                <action android:name="android.intent.action.CALL" />
-                <category android:name="android.intent.category.DEFAULT" />
-                <data android:scheme="sip" />
-            </intent-filter>
-            <intent-filter>
-                <action android:name="android.intent.action.CALL" />
-                <category android:name="android.intent.category.DEFAULT" />
-                <data android:scheme="voicemail" />
-            </intent-filter>
-            <intent-filter>
-                <action android:name="android.intent.action.CALL" />
-                <category android:name="android.intent.category.DEFAULT" />
-                <data android:mimeType="vnd.android.cursor.item/phone" />
-                <data android:mimeType="vnd.android.cursor.item/phone_v2" />
-                <data android:mimeType="vnd.android.cursor.item/person" />
-            </intent-filter>
-        </activity>
-
-        <activity-alias android:name="EmergencyOutgoingCallBroadcaster"
-                android:enabled="false"
-                android:targetActivity="OutgoingCallBroadcaster"
-                android:permission="android.permission.CALL_PRIVILEGED">
-            <intent-filter android:priority="1000">
-                <action android:name="android.intent.action.CALL_EMERGENCY" />
-                <category android:name="android.intent.category.DEFAULT" />
-                <data android:scheme="tel" />
-            </intent-filter>
-            <intent-filter android:icon="@drawable/ic_launcher_sip_call"
-                    android:priority="1000">
-                <action android:name="android.intent.action.CALL_EMERGENCY" />
-                <category android:name="android.intent.category.DEFAULT" />
-                <data android:scheme="sip" />
-            </intent-filter>
-            <intent-filter android:priority="1000">
-                <action android:name="android.intent.action.CALL_EMERGENCY" />
-                <category android:name="android.intent.category.DEFAULT" />
-                <data android:scheme="voicemail" />
-            </intent-filter>
-            <intent-filter android:priority="1000">
-                <action android:name="android.intent.action.CALL_EMERGENCY" />
-                <category android:name="android.intent.category.DEFAULT" />
-                <data android:mimeType="vnd.android.cursor.item/phone" />
-                <data android:mimeType="vnd.android.cursor.item/person" />
-            </intent-filter>
-        </activity-alias>
-
-        <activity-alias android:name="PrivilegedOutgoingCallBroadcaster"
-                android:enabled="false"
-                android:targetActivity="OutgoingCallBroadcaster"
-                android:screenOrientation="nosensor"
-                android:permission="android.permission.CALL_PRIVILEGED">
-            <intent-filter android:priority="1000">
-                <action android:name="android.intent.action.CALL_PRIVILEGED" />
-                <category android:name="android.intent.category.DEFAULT" />
-                <data android:scheme="tel" />
-            </intent-filter>
-            <intent-filter android:icon="@drawable/ic_launcher_sip_call"
-                    android:priority="1000">
-                <action android:name="android.intent.action.CALL_PRIVILEGED" />
-                <category android:name="android.intent.category.DEFAULT" />
-                <data android:scheme="sip" />
-            </intent-filter>
-            <intent-filter android:priority="1000">
-                <action android:name="android.intent.action.CALL_PRIVILEGED" />
-                <category android:name="android.intent.category.DEFAULT" />
-                <data android:scheme="voicemail" />
-            </intent-filter>
-            <intent-filter android:priority="1000">
-                <action android:name="android.intent.action.CALL_PRIVILEGED" />
-                <category android:name="android.intent.category.DEFAULT" />
-                <data android:mimeType="vnd.android.cursor.item/phone" />
-                <data android:mimeType="vnd.android.cursor.item/phone_v2" />
-                <data android:mimeType="vnd.android.cursor.item/person" />
-            </intent-filter>
-        </activity-alias>
-
-        <receiver android:name="ProcessOutgoingCallTest" android:exported="false"
-            android:enabled="false">
-            <intent-filter android:priority="1">
-                <action android:name="android.intent.action.NEW_OUTGOING_CALL" />
-                <category android:name="android.intent.category.DEFAULT" />
-            </intent-filter>
-        </receiver>
+        <activity android:name="com.android.internal.telephony.uicc.InstallCarrierAppTrampolineActivity"
+                  android:theme="@android:style/Theme.Translucent.NoTitleBar"
+                  android:exported="false"/>
 
         <!-- "Mobile network settings" screen, used on both
              non-voice-capable tablets and regular phone devices. -->
@@ -593,13 +499,6 @@
 
         <!-- End SIP -->
 
-        <activity android:name="ErrorDialogActivity"
-                android:configChanges="orientation|screenSize|keyboardHidden"
-                android:excludeFromRecents="true"
-                android:launchMode="singleInstance"
-                android:theme="@style/Empty">
-        </activity>
-
         <activity android:name="MMIDialogActivity"
                 android:configChanges="orientation|screenSize|keyboardHidden"
                 android:excludeFromRecents="true"
@@ -652,6 +551,7 @@
                 <action android:name="android.telecom.ConnectionService" />
             </intent-filter>
         </service>
+
         <provider
                 android:name="PhoneSearchIndexablesProvider"
                 android:authorities="com.android.phone"
@@ -683,6 +583,10 @@
                 <action android:name="android.intent.action.SIM_STATE_CHANGED"/>
             </intent-filter>
         </receiver>
+
+        <receiver
+            android:name="com.android.internal.telephony.uicc.ShowInstallAppNotificationReceiver"
+            android:exported="false"/>
 
         <service
             android:name="com.android.phone.vvm.RemoteVvmTaskManager"
