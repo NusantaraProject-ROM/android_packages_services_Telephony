@@ -227,9 +227,14 @@ final class TelecomAccountRegistry {
                         isHandoverFromSupported);
             }
 
-            boolean isDeviceRttSupported = mContext.getResources().getBoolean(
-                    R.bool.config_support_rtt);
-            if (isDeviceRttSupported && isCarrierRttSupported()) {
+            final boolean isTelephonyAudioDeviceSupported = mContext.getResources().getBoolean(
+                    R.bool.config_support_telephony_audio_device);
+            if (isTelephonyAudioDeviceSupported && !isEmergency
+                    && isCarrierUseCallRecordingTone()) {
+                extras.putBoolean(PhoneAccount.EXTRA_PLAY_CALL_RECORDING_TONE, true);
+            }
+
+            if (PhoneGlobals.getInstance().phoneMgr.isRttSupported()) {
                 capabilities |= PhoneAccount.CAPABILITY_RTT;
             }
 
@@ -398,12 +403,6 @@ final class TelecomAccountRegistry {
                     b.getBoolean(CarrierConfigManager.KEY_SUPPORT_VIDEO_CONFERENCE_CALL_BOOL);
         }
 
-        private boolean isCarrierRttSupported() {
-            PersistableBundle b =
-                    PhoneGlobals.getInstance().getCarrierConfigForSubId(mPhone.getSubId());
-            return b != null && b.getBoolean(CarrierConfigManager.KEY_RTT_SUPPORTED_BOOL);
-        }
-
         /**
          * Determines from carrier config whether merging of wifi calls is allowed when VoWIFI is
          * turned off.
@@ -441,6 +440,18 @@ final class TelecomAccountRegistry {
             PersistableBundle b =
                     PhoneGlobals.getInstance().getCarrierConfigForSubId(mPhone.getSubId());
             return b.getBoolean(CarrierConfigManager.KEY_SHOW_PRECISE_FAILED_CAUSE_BOOL);
+        }
+
+        /**
+         * Determines from carrier config whether the carrier requires the use of a call recording
+         * tone.
+         *
+         * @return {@code true} if a call recording tone should be used, {@code false} otherwise.
+         */
+        private boolean isCarrierUseCallRecordingTone() {
+            PersistableBundle b =
+                    PhoneGlobals.getInstance().getCarrierConfigForSubId(mPhone.getSubId());
+            return b.getBoolean(CarrierConfigManager.KEY_PLAY_CALL_RECORDING_TONE_BOOL);
         }
 
         /**
