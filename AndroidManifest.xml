@@ -192,6 +192,7 @@
     <uses-permission android:name="android.permission.MANAGE_NETWORK_POLICY" />
     <uses-permission android:name="android.permission.READ_NETWORK_USAGE_HISTORY" />
     <uses-permission android:name="android.permission.BIND_TELEPHONY_DATA_SERVICE" />
+    <uses-permission android:name="android.permission.PACKAGE_USAGE_STATS" />
 
     <application android:name="PhoneApp"
             android:persistent="true"
@@ -504,17 +505,6 @@
                 android:excludeFromRecents="true"
                 android:launchMode="singleInstance"
                 android:theme="@style/Empty">
-        </activity>
-
-        <activity
-            android:name="com.android.phone.settings.assisteddialing.AssistedDialingSettingActivity"
-            android:label="@string/assisted_dialing_setting_title"
-            android:theme="@style/DialerSettingsLight">
-            <intent-filter>
-                <action android:name="android.intent.action.MAIN" />
-                <action android:name="android.telecom.action.SHOW_ASSISTED_DIALING_SETTINGS" />
-                <category android:name="android.intent.category.DEFAULT" />
-            </intent-filter>
         </activity>
 
         <activity android:name="com.android.phone.settings.PhoneAccountSettingsActivity"
