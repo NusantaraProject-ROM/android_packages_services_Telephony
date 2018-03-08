@@ -132,7 +132,7 @@ public class CallFeaturesSetting extends PreferenceActivity
 
         if (preference == mEnableVideoCalling) {
             if (mImsMgr.isEnhanced4gLteModeSettingEnabledByUser()) {
-                PhoneGlobals.getInstance().phoneMgr.enableVideoCalling((boolean) objValue);
+                mImsMgr.setVtSetting((boolean) objValue);
             } else {
                 AlertDialog.Builder builder = new AlertDialog.Builder(this);
                 DialogInterface.OnClickListener networkSettingsClickListener =
@@ -299,8 +299,7 @@ public class CallFeaturesSetting extends PreferenceActivity
                 || mPhone.mDcTracker.isDataEnabled())) {
             boolean currentValue =
                     mImsMgr.isEnhanced4gLteModeSettingEnabledByUser()
-                    ? PhoneGlobals.getInstance().phoneMgr.isVideoCallingEnabled(
-                            getOpPackageName()) : false;
+                    ? mImsMgr.isVtEnabledByUser() : false;
             mEnableVideoCalling.setChecked(currentValue);
             mEnableVideoCalling.setOnPreferenceChangeListener(this);
         } else {
@@ -339,7 +338,7 @@ public class CallFeaturesSetting extends PreferenceActivity
         } else {
             int resId = com.android.internal.R.string.wifi_calling_off_summary;
             if (mImsMgr.isWfcEnabledByUser()) {
-                boolean isRoaming = telephonyManager.isNetworkRoaming();
+                boolean isRoaming = telephonyManager.isNetworkRoaming(mPhone.getSubId());
                 int wfcMode = mImsMgr.getWfcMode(isRoaming);
                 switch (wfcMode) {
                     case ImsConfig.WfcModeFeatureValueConstants.WIFI_ONLY:
