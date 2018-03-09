@@ -101,6 +101,7 @@ public class CallFeaturesSetting extends PreferenceActivity
     private SwitchPreference mButtonAutoRetry;
     private PreferenceScreen mVoicemailSettingsScreen;
     private SwitchPreference mEnableVideoCalling;
+    private Preference mButtonWifiCalling;
 
     /*
      * Click Listeners, handle click based on objects attached to UI.
@@ -205,6 +206,8 @@ public class CallFeaturesSetting extends PreferenceActivity
                         (TelephonyManager) getSystemService(Context.TELEPHONY_SERVICE);
                 mEnableVideoCalling.setEnabled(
                         telephonyManager.getCallState() == TelephonyManager.CALL_STATE_IDLE);
+                mButtonWifiCalling.setEnabled(
+                        telephonyManager.getCallState() == TelephonyManager.CALL_STATE_IDLE);
             }
         }
     };
@@ -244,6 +247,8 @@ public class CallFeaturesSetting extends PreferenceActivity
         mButtonAutoRetry = (SwitchPreference) findPreference(BUTTON_RETRY_KEY);
 
         mEnableVideoCalling = (SwitchPreference) findPreference(ENABLE_VIDEO_CALLING_KEY);
+        mButtonWifiCalling = findPreference(getResources().getString(
+                R.string.wifi_calling_settings_key));
 
         PersistableBundle carrierConfig =
                 PhoneGlobals.getInstance().getCarrierConfigForSubId(mPhone.getSubId());
@@ -314,9 +319,6 @@ public class CallFeaturesSetting extends PreferenceActivity
             /* tm.listen(mPhoneStateListener, PhoneStateListener.LISTEN_CALL_STATE); */
         }
 
-        Preference wifiCallingSettings = findPreference(
-                getResources().getString(R.string.wifi_calling_settings_key));
-
         final PhoneAccountHandle simCallManager = mTelecomManager.getSimCallManager();
         if (simCallManager != null) {
             Intent intent = PhoneAccountSettingsFragment.buildPhoneAccountConfigureIntent(
@@ -325,17 +327,17 @@ public class CallFeaturesSetting extends PreferenceActivity
                 PackageManager pm = mPhone.getContext().getPackageManager();
                 List<ResolveInfo> resolutions = pm.queryIntentActivities(intent, 0);
                 if (!resolutions.isEmpty()) {
-                    wifiCallingSettings.setTitle(resolutions.get(0).loadLabel(pm));
-                    wifiCallingSettings.setSummary(null);
-                    wifiCallingSettings.setIntent(intent);
+                    mButtonWifiCalling.setTitle(resolutions.get(0).loadLabel(pm));
+                    mButtonWifiCalling.setSummary(null);
+                    mButtonWifiCalling.setIntent(intent);
                 } else {
-                    prefSet.removePreference(wifiCallingSettings);
+                    prefSet.removePreference(mButtonWifiCalling);
                 }
             } else {
-                prefSet.removePreference(wifiCallingSettings);
+                prefSet.removePreference(mButtonWifiCalling);
             }
         } else if (!mImsMgr.isWfcEnabledByPlatform() || !mImsMgr.isWfcProvisionedOnDevice()) {
-            prefSet.removePreference(wifiCallingSettings);
+            prefSet.removePreference(mButtonWifiCalling);
         } else {
             int resId = com.android.internal.R.string.wifi_calling_off_summary;
             if (mImsMgr.isWfcEnabledByUser()) {
@@ -355,19 +357,19 @@ public class CallFeaturesSetting extends PreferenceActivity
                         if (DBG) log("Unexpected WFC mode value: " + wfcMode);
                 }
             }
-            wifiCallingSettings.setSummary(resId);
+            mButtonWifiCalling.setSummary(resId);
         }
 
         try {
             if (mImsMgr.getImsServiceState() != ImsFeature.STATE_READY) {
                 log("Feature state not ready so remove vt and wfc settings for "
                         + " phone =" + mPhone.getPhoneId());
-                prefSet.removePreference(wifiCallingSettings);
+                prefSet.removePreference(mButtonWifiCalling);
                 prefSet.removePreference(mEnableVideoCalling);
             }
         } catch (ImsException ex) {
             log("Exception when trying to get ImsServiceStatus: " + ex);
-            prefSet.removePreference(wifiCallingSettings);
+            prefSet.removePreference(mButtonWifiCalling);
             prefSet.removePreference(mEnableVideoCalling);
         }
     }
