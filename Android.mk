@@ -23,6 +23,7 @@ LOCAL_STATIC_ANDROID_LIBRARIES := \
         android-support-v14-preference
 
 LOCAL_STATIC_JAVA_LIBRARIES := \
+        ims-ext-common \
         guava \
         volley
 
