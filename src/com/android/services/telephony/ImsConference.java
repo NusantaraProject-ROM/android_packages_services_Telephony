@@ -705,8 +705,18 @@ public class ImsConference extends Conference implements Holdable {
                     // Some carriers will also include the conference host in the CEP.  We will
                     // filter that out here.
                     // Also make sure the parent connection is not null.
-                    if (!isParticipantHost(mConferenceHostAddress, participant.getHandle()) &&
-                            (parent.getOriginalConnection() != null)) {
+                    boolean disableFilter = false;
+                    Phone phone = parent.getPhone();
+                    if (phone != null) {
+                        CarrierConfigManager cfgManager = (CarrierConfigManager)
+                                phone.getContext().getSystemService(Context.CARRIER_CONFIG_SERVICE);
+                        if (cfgManager != null) {
+                            disableFilter = cfgManager.getConfigForSubId(phone.getSubId())
+                                    .getBoolean("disable_filter_out_conference_host");
+                        }
+                    }
+                    if ((!isParticipantHost(mConferenceHostAddress, participant.getHandle())
+                            || disableFilter) && (parent.getOriginalConnection() != null)) {
                         Log.i(this, "Create participant connection, participant = %s", participant);
                         createConferenceParticipantConnection(parent, participant);
                         newParticipants.add(participant);
