@@ -22,6 +22,7 @@ import android.net.Uri;
 import android.os.AsyncResult;
 import android.os.Bundle;
 import android.os.Handler;
+import android.os.Looper;
 import android.os.Message;
 import android.os.PersistableBundle;
 import android.telecom.CallAudioState;
@@ -37,6 +38,7 @@ import android.telephony.DisconnectCause;
 import android.telephony.PhoneNumberUtils;
 import android.telephony.TelephonyManager;
 import android.telephony.ims.ImsCallProfile;
+import android.text.TextUtils;
 import android.util.Pair;
 
 import com.android.ims.ImsCall;
@@ -69,7 +71,8 @@ import java.util.concurrent.ConcurrentHashMap;
 /**
  * Base class for CDMA and GSM connections.
  */
-abstract class TelephonyConnection extends Connection implements Holdable {
+abstract class TelephonyConnection extends Connection implements Holdable,
+          TelephonyConnectionService.ConnectionRemovedListener {
     private static final int MSG_PRECISE_CALL_STATE_CHANGED = 1;
     private static final int MSG_RINGBACK_TONE = 2;
     private static final int MSG_HANDOVER_STATE_CHANGED = 3;
@@ -94,8 +97,9 @@ abstract class TelephonyConnection extends Connection implements Holdable {
     private static final int MSG_CDMA_VOICE_PRIVACY_ON = 15;
     private static final int MSG_CDMA_VOICE_PRIVACY_OFF = 16;
     private static final int MSG_HANGUP = 17;
+    private static final int MSG_CONNECTION_REMOVED = 18;
 
-    private final Handler mHandler = new Handler() {
+    private final Handler mHandler = new Handler(Looper.getMainLooper()) {
         @Override
         public void handleMessage(Message msg) {
             switch (msg.what) {
@@ -169,10 +173,7 @@ abstract class TelephonyConnection extends Connection implements Holdable {
                                         new ArrayList(Arrays.asList(mSsNotification.history)));
                                 putExtras(lastForwardedNumber);
                             }
-                            if (mSsNotification.code
-                                    == SuppServiceNotification.MO_CODE_CALL_FORWARDED) {
-                                sendConnectionEvent(TelephonyManager.EVENT_CALL_FORWARDED, null);
-                            }
+                            handleSuppServiceNotification(mSsNotification);
                         }
                     }
                     break;
@@ -250,9 +251,123 @@ abstract class TelephonyConnection extends Connection implements Holdable {
                     int cause = (int) msg.obj;
                     hangup(cause);
                     break;
+                case MSG_CONNECTION_REMOVED:
+                    Log.d(this, "MSG_CONNECTION_REMOVED");
+                    // Some connection has disconnected. Re fresh disable add call property.
+                    refreshDisableAddCall();
+                    break;
             }
         }
     };
+
+    /**
+     * Handles {@link SuppServiceNotification}s pertinent to Telephony.
+     * @param ssn the notification.
+     */
+    private void handleSuppServiceNotification(SuppServiceNotification ssn) {
+        Log.i(this, "handleSuppServiceNotification: type=%d, code=%d", ssn.notificationType,
+                ssn.code);
+        if (ssn.notificationType == SuppServiceNotification.NOTIFICATION_TYPE_CODE_1
+                && ssn.code == SuppServiceNotification.CODE_1_CALL_FORWARDED) {
+            sendConnectionEvent(TelephonyManager.EVENT_CALL_FORWARDED, null);
+        }
+        sendSuppServiceNotificationEvent(ssn.notificationType, ssn.code);
+    }
+
+    /**
+     * Sends a supplementary service notification connection event.
+     * This connection event includes the type and code, as well as a human readable message which
+     * is suitable for display to the user if the UI chooses to do so.
+     * @param type the {@link SuppServiceNotification#type}.
+     * @param code the {@link SuppServiceNotification#code}.
+     */
+    private void sendSuppServiceNotificationEvent(int type, int code) {
+        Bundle extras = new Bundle();
+        extras.putInt(TelephonyManager.EXTRA_NOTIFICATION_TYPE, type);
+        extras.putInt(TelephonyManager.EXTRA_NOTIFICATION_CODE, code);
+        extras.putCharSequence(TelephonyManager.EXTRA_NOTIFICATION_MESSAGE,
+                getSuppServiceMessage(type, code));
+        sendConnectionEvent(TelephonyManager.EVENT_SUPPLEMENTARY_SERVICE_NOTIFICATION, extras);
+    }
+
+    /**
+     * Retrieves a human-readable message for a supplementary service notification.
+     * This message is suitable for display to the user.
+     * @param type the code group.
+     * @param code the code.
+     * @return A {@link CharSequence} containing the message, or {@code null} if none defined.
+     */
+    private CharSequence getSuppServiceMessage(int type, int code) {
+        int messageId = -1;
+        if (type == SuppServiceNotification.NOTIFICATION_TYPE_CODE_1) {
+            switch (code) {
+                case SuppServiceNotification.CODE_1_CALL_DEFLECTED:
+                    messageId = R.string.supp_service_notification_call_deflected;
+                    break;
+                case SuppServiceNotification.CODE_1_CALL_FORWARDED:
+                    messageId = R.string.supp_service_notification_call_forwarded;
+                    break;
+                case SuppServiceNotification.CODE_1_CALL_IS_WAITING:
+                    messageId = R.string.supp_service_notification_call_waiting;
+                    break;
+                case SuppServiceNotification.CODE_1_CLIR_SUPPRESSION_REJECTED:
+                    messageId = R.string.supp_service_clir_suppression_rejected;
+                    break;
+                case SuppServiceNotification.CODE_1_CUG_CALL:
+                    messageId = R.string.supp_service_closed_user_group_call;
+                    break;
+                case SuppServiceNotification.CODE_1_INCOMING_CALLS_BARRED:
+                    messageId = R.string.supp_service_incoming_calls_barred;
+                    break;
+                case SuppServiceNotification.CODE_1_OUTGOING_CALLS_BARRED:
+                    messageId = R.string.supp_service_outgoing_calls_barred;
+                    break;
+                case SuppServiceNotification.CODE_1_SOME_CF_ACTIVE:
+                    // Intentional fall through.
+                case SuppServiceNotification.CODE_1_UNCONDITIONAL_CF_ACTIVE:
+                    messageId = R.string.supp_service_call_forwarding_active;
+                    break;
+            }
+        } else if (type == SuppServiceNotification.NOTIFICATION_TYPE_CODE_2) {
+            switch (code) {
+                case SuppServiceNotification.CODE_2_ADDITIONAL_CALL_FORWARDED:
+                    messageId = R.string.supp_service_additional_call_forwarded;
+                    break;
+                case SuppServiceNotification.CODE_2_CALL_CONNECTED_ECT:
+                    messageId = R.string.supp_service_additional_ect_connected;
+                    break;
+                case SuppServiceNotification.CODE_2_CALL_CONNECTING_ECT:
+                    messageId = R.string.supp_service_additional_ect_connecting;
+                    break;
+                case SuppServiceNotification.CODE_2_CALL_ON_HOLD:
+                    messageId = R.string.supp_service_call_on_hold;
+                    break;
+                case SuppServiceNotification.CODE_2_CALL_RETRIEVED:
+                    messageId = R.string.supp_service_call_resumed;
+                    break;
+                case SuppServiceNotification.CODE_2_CUG_CALL:
+                    messageId = R.string.supp_service_closed_user_group_call;
+                    break;
+                case SuppServiceNotification.CODE_2_DEFLECTED_CALL:
+                    messageId = R.string.supp_service_deflected_call;
+                    break;
+                case SuppServiceNotification.CODE_2_FORWARDED_CALL:
+                    messageId = R.string.supp_service_forwarded_call;
+                    break;
+                case SuppServiceNotification.CODE_2_MULTI_PARTY_CALL:
+                    messageId = R.string.supp_service_conference_call;
+                    break;
+                case SuppServiceNotification.CODE_2_ON_HOLD_CALL_RELEASED:
+                    messageId = R.string.supp_service_held_call_released;
+                    break;
+            }
+        }
+        if (messageId != -1 && getPhone() != null && getPhone().getContext() != null) {
+            return getPhone().getContext().getText(messageId);
+        } else {
+            return null;
+        }
+    }
 
     /**
      * @return {@code true} if carrier video conferencing is supported, {@code false} otherwise.
@@ -438,6 +553,7 @@ abstract class TelephonyConnection extends Connection implements Holdable {
 
         @Override
         public void onRttModifyResponseReceived(int status) {
+            updateConnectionProperties();
             if (status == RttModifyStatus.SESSION_MODIFY_REQUEST_SUCCESS) {
                 sendRttInitiationSuccess();
             } else {
@@ -447,17 +563,20 @@ abstract class TelephonyConnection extends Connection implements Holdable {
 
         @Override
         public void onDisconnect(int cause) {
-            Log.i(this, "onDisconnect: cause=%s", DisconnectCause.toString(cause));
-            mHandler.obtainMessage(MSG_DISCONNECT);
+            Log.i(this, "onDisconnect: callId=%s, cause=%s", getTelecomCallId(),
+                    DisconnectCause.toString(cause));
+            mHandler.obtainMessage(MSG_DISCONNECT).sendToTarget();
         }
 
         @Override
         public void onRttInitiated() {
+            updateConnectionProperties();
             sendRttInitiationSuccess();
         }
 
         @Override
         public void onRttTerminated() {
+            updateConnectionProperties();
             sendRttSessionRemotelyTerminated();
         }
     };
@@ -655,6 +774,45 @@ abstract class TelephonyConnection extends Connection implements Holdable {
     }
 
     @Override
+    public void onDeflect(Uri address) {
+        Log.v(this, "onDeflect");
+        if (mOriginalConnection != null && isValidRingingCall()) {
+            if (address == null) {
+                Log.w(this, "call deflect address uri is null");
+                return;
+            }
+            String scheme = address.getScheme();
+            String deflectNumber = "";
+            String uriString = address.getSchemeSpecificPart();
+            if (!PhoneAccount.SCHEME_VOICEMAIL.equals(scheme)) {
+                if (!PhoneAccount.SCHEME_TEL.equals(scheme)) {
+                    Log.w(this, "onDeflect, address scheme is not of type tel instead: " +
+                            scheme);
+                    return;
+                }
+                if (PhoneNumberUtils.isUriNumber(uriString)) {
+                    Log.w(this, "Invalid deflect address. Not a legal PSTN number.");
+                    return;
+                }
+                deflectNumber = PhoneNumberUtils.convertAndStrip(uriString);
+                if (TextUtils.isEmpty(deflectNumber)) {
+                    Log.w(this, "Empty deflect number obtained from address uri");
+                    return;
+                }
+            } else {
+                Log.w(this, "Cannot deflect to voicemail uri");
+                return;
+            }
+
+            try {
+                mOriginalConnection.deflect(deflectNumber);
+            } catch (CallStateException e) {
+                Log.e(this, e, "Failed to deflect call.");
+            }
+        }
+    }
+
+    @Override
     public void onReject() {
         Log.v(this, "onReject");
         if (isValidRingingCall()) {
@@ -704,7 +862,7 @@ abstract class TelephonyConnection extends Connection implements Holdable {
 
     @Override
     public void onStopRtt() {
-        // This is not supported by carriers/vendor yet. No-op for now.
+        Log.i(this, "Stopping RTT currently not supported. Doing nothing.");
     }
 
     @Override
@@ -715,6 +873,13 @@ abstract class TelephonyConnection extends Connection implements Holdable {
         }
         ImsPhoneConnection originalConnection = (ImsPhoneConnection) mOriginalConnection;
         originalConnection.sendRttModifyResponse(textStream);
+    }
+
+    @Override
+    public void onConnectionRemoved(TelephonyConnection conn) {
+        if (conn != this) {
+            mHandler.obtainMessage(MSG_CONNECTION_REMOVED).sendToTarget();
+        }
     }
 
     public void performHold() {
@@ -829,6 +994,8 @@ abstract class TelephonyConnection extends Connection implements Holdable {
         newCapabilities = changeBitmask(newCapabilities, CAPABILITY_CAN_PULL_CALL,
                 isExternalConnection() && isPullable());
         newCapabilities = applyConferenceTerminationCapabilities(newCapabilities);
+        newCapabilities = changeBitmask(newCapabilities, CAPABILITY_SUPPORT_DEFLECT,
+                isImsConnection() && canDeflectImsCalls());
 
         if (getConnectionCapabilities() != newCapabilities) {
             setConnectionCapabilities(newCapabilities);
@@ -863,8 +1030,7 @@ abstract class TelephonyConnection extends Connection implements Holdable {
                 mIsCdmaVoicePrivacyEnabled);
         newProperties = changeBitmask(newProperties, PROPERTY_ASSISTED_DIALING_USED,
                 mIsUsingAssistedDialing);
-        newProperties = changeBitmask(newProperties, PROPERTY_IS_RTT,
-                (getConnectionProperties() & PROPERTY_IS_RTT) != 0);
+        newProperties = changeBitmask(newProperties, PROPERTY_IS_RTT, isRtt());
 
         if (getConnectionProperties() != newProperties) {
             setConnectionProperties(newProperties);
@@ -1056,9 +1222,18 @@ abstract class TelephonyConnection extends Connection implements Holdable {
         boolean isVowifiEnabled = false;
         if (phone instanceof ImsPhone) {
             ImsPhone imsPhone = (ImsPhone) phone;
+            ImsCall call = null;
             if (imsPhone.getForegroundCall() != null
                     && imsPhone.getForegroundCall().getImsCall() != null) {
-                ImsCall call = imsPhone.getForegroundCall().getImsCall();
+                call = imsPhone.getForegroundCall().getImsCall();
+            } else if (imsPhone.getBackgroundCall() != null
+                    && imsPhone.getBackgroundCall().getImsCall() != null) {
+                call = imsPhone.getBackgroundCall().getImsCall();
+            } else if (imsPhone.getRingingCall() != null
+                    && imsPhone.getRingingCall().getImsCall() != null) {
+                call = imsPhone.getRingingCall().getImsCall();
+            }
+            if (call != null) {
                 isCurrentVideoCall = call.isVideoCall();
                 wasVideoCall = call.wasVideoCall();
             }
@@ -1123,6 +1298,17 @@ abstract class TelephonyConnection extends Connection implements Holdable {
             return null;
         }
         return PhoneGlobals.getInstance().getCarrierConfigForSubId(phone.getSubId());
+    }
+
+    private boolean canDeflectImsCalls() {
+        PersistableBundle b = getCarrierConfig();
+        // Return false if the CarrierConfig is unavailable
+        if (b != null) {
+            return b.getBoolean(
+                    CarrierConfigManager.KEY_CARRIER_ALLOW_DEFLECT_IMS_CALL_BOOL) &&
+                    isValidRingingCall();
+        }
+        return false;
     }
 
     /**
@@ -1552,6 +1738,15 @@ abstract class TelephonyConnection extends Connection implements Holdable {
      */
     private boolean isExternalConnection() {
         return can(mOriginalConnectionCapabilities, Capability.IS_EXTERNAL_CONNECTION);
+    }
+
+    /**
+     * Determines if the current connection has RTT enabled.
+     */
+    private boolean isRtt() {
+        return mOriginalConnection != null
+                && mOriginalConnection.getPhoneType() == PhoneConstants.PHONE_TYPE_IMS
+                && ((ImsPhoneConnection) mOriginalConnection).isRttEnabledForCall();
     }
 
     /**

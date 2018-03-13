@@ -25,18 +25,20 @@ import android.content.ComponentName;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.pm.ApplicationInfo;
+import android.content.pm.PackageManager;
+import android.content.pm.ResolveInfo;
 import android.content.res.Configuration;
 import android.media.AudioManager;
 import android.net.Uri;
 import android.os.Handler;
 import android.os.Message;
-import android.os.PersistableBundle;
 import android.os.RemoteException;
+import android.os.ServiceManager;
 import android.os.SystemProperties;
 import android.telecom.PhoneAccount;
 import android.telecom.PhoneAccountHandle;
 import android.telecom.VideoProfile;
-import android.telephony.CarrierConfigManager;
 import android.telephony.PhoneNumberUtils;
 import android.telephony.SubscriptionManager;
 import android.text.TextUtils;
@@ -61,12 +63,13 @@ import com.android.internal.telephony.Phone;
 import com.android.internal.telephony.PhoneConstants;
 import com.android.internal.telephony.PhoneFactory;
 import com.android.internal.telephony.TelephonyCapabilities;
-import com.android.internal.telephony.TelephonyProperties;
 import com.android.internal.telephony.sip.SipPhone;
 import com.android.phone.CallGatewayManager.RawGatewayInfo;
 
 import java.util.Arrays;
 import java.util.List;
+
+import org.codeaurora.internal.IExtTelephony;
 
 /**
  * Misc utilities for the Phone app.
@@ -121,9 +124,6 @@ public class PhoneUtils {
 
     /** Define for not a special CNAP string */
     private static final int CNAP_SPECIAL_CASE_NO = -1;
-
-    /** Noise suppression status as selected by user */
-    private static boolean sIsNoiseSuppressionEnabled = true;
 
     /**
      * Theme to use for dialogs displayed by utility methods in this class. This is needed
@@ -1117,54 +1117,6 @@ public class PhoneUtils {
     }
 
     /**
-     * Given an Intent (which is presumably the ACTION_CALL intent that
-     * initiated this outgoing call), figure out the actual phone number we
-     * should dial.
-     *
-     * Note that the returned "number" may actually be a SIP address,
-     * if the specified intent contains a sip: URI.
-     *
-     * This method is basically a wrapper around PhoneUtils.getNumberFromIntent(),
-     * except it's also aware of the EXTRA_ACTUAL_NUMBER_TO_DIAL extra.
-     * (That extra, if present, tells us the exact string to pass down to the
-     * telephony layer.  It's guaranteed to be safe to dial: it's either a PSTN
-     * phone number with separators and keypad letters stripped out, or a raw
-     * unencoded SIP address.)
-     *
-     * @return the phone number corresponding to the specified Intent, or null
-     *   if the Intent has no action or if the intent's data is malformed or
-     *   missing.
-     *
-     * @throws VoiceMailNumberMissingException if the intent
-     *   contains a "voicemail" URI, but there's no voicemail
-     *   number configured on the device.
-     */
-    public static String getInitialNumber(Intent intent)
-            throws PhoneUtils.VoiceMailNumberMissingException {
-        if (DBG) log("getInitialNumber(): " + intent);
-
-        String action = intent.getAction();
-        if (TextUtils.isEmpty(action)) {
-            return null;
-        }
-
-        // If the EXTRA_ACTUAL_NUMBER_TO_DIAL extra is present, get the phone
-        // number from there.  (That extra takes precedence over the actual data
-        // included in the intent.)
-        if (intent.hasExtra(OutgoingCallBroadcaster.EXTRA_ACTUAL_NUMBER_TO_DIAL)) {
-            String actualNumberToDial =
-                    intent.getStringExtra(OutgoingCallBroadcaster.EXTRA_ACTUAL_NUMBER_TO_DIAL);
-            if (DBG) {
-                log("==> got EXTRA_ACTUAL_NUMBER_TO_DIAL; returning '"
-                        + toLogSafePhoneNumber(actualNumberToDial) + "'");
-            }
-            return actualNumberToDial;
-        }
-
-        return getNumberFromIntent(PhoneGlobals.getInstance(), intent);
-    }
-
-    /**
      * Gets the phone number to be called from an intent.  Requires a Context
      * to access the contacts database, and a Phone to access the voicemail
      * number.
@@ -1794,62 +1746,6 @@ public class PhoneUtils {
     static boolean isSpeakerOn(Context context) {
         AudioManager audioManager = (AudioManager) context.getSystemService(Context.AUDIO_SERVICE);
         return audioManager.isSpeakerphoneOn();
-    }
-
-
-    static void turnOnNoiseSuppression(Context context, boolean flag, boolean store) {
-        if (DBG) log("turnOnNoiseSuppression: " + flag);
-        AudioManager audioManager = (AudioManager) context.getSystemService(Context.AUDIO_SERVICE);
-
-        PersistableBundle b = PhoneGlobals.getInstance().getCarrierConfig();
-        if (!b.getBoolean(CarrierConfigManager.KEY_HAS_IN_CALL_NOISE_SUPPRESSION_BOOL)) {
-            return;
-        }
-
-        if (flag) {
-            audioManager.setParameters("noise_suppression=auto");
-        } else {
-            audioManager.setParameters("noise_suppression=off");
-        }
-
-        // record the speaker-enable value
-        if (store) {
-            sIsNoiseSuppressionEnabled = flag;
-        }
-
-        // TODO: implement and manage ICON
-
-    }
-
-    static void restoreNoiseSuppression(Context context) {
-        if (DBG) log("restoreNoiseSuppression, restoring to: " + sIsNoiseSuppressionEnabled);
-
-        PersistableBundle b = PhoneGlobals.getInstance().getCarrierConfig();
-        if (!b.getBoolean(CarrierConfigManager.KEY_HAS_IN_CALL_NOISE_SUPPRESSION_BOOL)) {
-            return;
-        }
-
-        // change the mode if needed.
-        if (isNoiseSuppressionOn(context) != sIsNoiseSuppressionEnabled) {
-            turnOnNoiseSuppression(context, sIsNoiseSuppressionEnabled, false);
-        }
-    }
-
-    static boolean isNoiseSuppressionOn(Context context) {
-
-        PersistableBundle b = PhoneGlobals.getInstance().getCarrierConfig();
-        if (!b.getBoolean(CarrierConfigManager.KEY_HAS_IN_CALL_NOISE_SUPPRESSION_BOOL)) {
-            return false;
-        }
-
-        AudioManager audioManager = (AudioManager) context.getSystemService(Context.AUDIO_SERVICE);
-        String noiseSuppression = audioManager.getParameters("noise_suppression");
-        if (DBG) log("isNoiseSuppressionOn: " + noiseSuppression);
-        if (noiseSuppression.contains("off")) {
-            return false;
-        } else {
-            return true;
-        }
     }
 
     static boolean isInEmergencyCall(CallManager cm) {
@@ -2492,5 +2388,26 @@ public class PhoneUtils {
         for (Phone phone : PhoneFactory.getPhones()) {
             phone.setRadioPower(enabled);
         }
+    }
+
+    /**
+     * check whether NetworkSetting apk exist in system, if yes, return true, else
+     * return false.
+     */
+    public static boolean isNetworkSettingsApkAvailable() {
+        // check whether the target handler exist in system
+        boolean isVendorNetworkSettingApkAvailable = false;
+        IExtTelephony extTelephony =
+                IExtTelephony.Stub.asInterface(ServiceManager.getService("extphone"));
+        try {
+            if (extTelephony != null &&
+                    extTelephony.isVendorApkAvailable("com.qualcomm.qti.networksetting")) {
+                isVendorNetworkSettingApkAvailable = true;
+            }
+        } catch (RemoteException ex) {
+            // could not connect to extphone service, launch the default activity
+            log("couldn't connect to extphone service, launch the default activity");
+        }
+        return isVendorNetworkSettingApkAvailable;
     }
 }

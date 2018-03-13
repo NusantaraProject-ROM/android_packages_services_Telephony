@@ -49,7 +49,6 @@ import android.util.LocalLog;
 import android.util.Log;
 import android.widget.Toast;
 
-import com.android.i18n.phonenumbers.PhoneNumberUtil;
 import com.android.internal.telephony.Call;
 import com.android.internal.telephony.CallManager;
 import com.android.internal.telephony.IccCardConstants;
@@ -104,6 +103,7 @@ public class PhoneGlobals extends ContextWrapper {
     // Message codes; see mHandler below.
     private static final int EVENT_SIM_NETWORK_LOCKED = 3;
     private static final int EVENT_SIM_STATE_CHANGED = 8;
+    private static final int EVENT_SIM_STATE_CHANGED_CHECKREADY = 16;
     private static final int EVENT_DATA_ROAMING_DISCONNECTED = 10;
     private static final int EVENT_DATA_ROAMING_OK = 11;
     private static final int EVENT_UNSOL_CDMA_INFO_RECORD = 12;
@@ -135,9 +135,6 @@ public class PhoneGlobals extends ContextWrapper {
 
     private static PhoneGlobals sMe;
 
-    // A few important fields we expose to the rest of the package
-    // directly (rather than thru set/get methods) for efficiency.
-    CallController callController;
     CallManager mCM;
     CallNotifier notifier;
     CallerInfoCache callerInfoCache;
@@ -184,8 +181,6 @@ public class PhoneGlobals extends ContextWrapper {
 
     private final SettingsObserver mSettingsObserver;
 
-    private final PhoneNumberUtil mPhoneNumberUtil = PhoneNumberUtil.getInstance();
-
     Handler mHandler = new Handler() {
         @Override
         public void handleMessage(Message msg) {
@@ -199,13 +194,21 @@ public class PhoneGlobals extends ContextWrapper {
                             CarrierConfigManager.KEY_IGNORE_SIM_NETWORK_LOCKED_EVENTS_BOOL)) {
                         // Some products don't have the concept of a "SIM network lock"
                         Log.i(LOG_TAG, "Ignoring EVENT_SIM_NETWORK_LOCKED event; "
-                                + "not showing 'SIM network unlock' PIN entry screen");
+                              + "not showing 'SIM network unlock' PIN entry screen");
                     } else {
                         // Normal case: show the "SIM network unlock" PIN entry screen.
                         // The user won't be able to do anything else until
                         // they enter a valid SIM network PIN.
+                        int subType = (Integer)((AsyncResult)msg.obj).result;
                         Log.i(LOG_TAG, "show sim depersonal panel");
-                        IccNetworkDepersonalizationPanel.showDialog();
+                        IccNetworkDepersonalizationPanel.showDialog(subType);
+                    }
+                    break;
+
+                case EVENT_SIM_STATE_CHANGED_CHECKREADY:
+                    if (msg.obj.equals(IccCardConstants.INTENT_VALUE_ICC_READY)) {
+                        Log.i(LOG_TAG, "Dismissing depersonal panel");
+                        IccNetworkDepersonalizationPanel.dialogDismiss();
                     }
                     break;
 
@@ -329,11 +332,6 @@ public class PhoneGlobals extends ContextWrapper {
 
             callGatewayManager = CallGatewayManager.getInstance();
 
-            // Create the CallController singleton, which is the interface
-            // to the telephony layer for user-initiated telephony functionality
-            // (like making outgoing calls.)
-            callController = CallController.init(this, callLogger, callGatewayManager);
-
             // Create the CallerInfoCache singleton, which remembers custom ring tone and
             // send-to-voicemail settings.
             //
@@ -440,10 +438,6 @@ public class PhoneGlobals extends ContextWrapper {
 
     /* package */ CallManager getCallManager() {
         return mCM;
-    }
-
-    public PhoneNumberUtil getPhoneNumberUtil() {
-        return mPhoneNumberUtil;
     }
 
     public PersistableBundle getCarrierConfig() {
@@ -659,7 +653,7 @@ public class PhoneGlobals extends ContextWrapper {
     private void setRadioPowerOff(Context context) {
         Log.i(LOG_TAG, "Turning radio off - airplane");
         Settings.Global.putInt(context.getContentResolver(), Settings.Global.CELL_ON,
-                PhoneConstants.CELL_OFF_DUE_TO_AIRPLANE_MODE_FLAG);
+                 PhoneConstants.CELL_OFF_DUE_TO_AIRPLANE_MODE_FLAG);
         SystemProperties.set("persist.radio.airplane_mode_on", "1");
         Settings.Global.putInt(getContentResolver(), Settings.Global.ENABLE_CELLULAR_ON_BOOT, 0);
         PhoneUtils.setRadioPower(false);
@@ -714,13 +708,17 @@ public class PhoneGlobals extends ContextWrapper {
                     airplaneMode = AIRPLANE_ON;
                 }
                 handleAirplaneModeChange(context, airplaneMode);
-            } else if ((action.equals(TelephonyIntents.ACTION_SIM_STATE_CHANGED)) &&
-                    (mPUKEntryActivity != null)) {
-                // if an attempt to un-PUK-lock the device was made, while we're
-                // receiving this state change notification, notify the handler.
-                // NOTE: This is ONLY triggered if an attempt to un-PUK-lock has
-                // been attempted.
-                mHandler.sendMessage(mHandler.obtainMessage(EVENT_SIM_STATE_CHANGED,
+            } else if ((action.equals(TelephonyIntents.ACTION_SIM_STATE_CHANGED))) {
+                PhoneUtils.registerIccStatus(mHandler, EVENT_SIM_NETWORK_LOCKED);
+                if (mPUKEntryActivity != null) {
+                    // if an attempt to un-PUK-lock the device was made, while we're
+                    // receiving this state change notification, notify the handler.
+                    // NOTE: This is ONLY triggered if an attempt to un-PUK-lock has
+                    // been attempted.
+                    mHandler.sendMessage(mHandler.obtainMessage(EVENT_SIM_STATE_CHANGED,
+                            intent.getStringExtra(IccCardConstants.INTENT_KEY_ICC_STATE)));
+                }
+                mHandler.sendMessage(mHandler.obtainMessage(EVENT_SIM_STATE_CHANGED_CHECKREADY,
                         intent.getStringExtra(IccCardConstants.INTENT_KEY_ICC_STATE)));
             } else if (action.equals(TelephonyIntents.ACTION_RADIO_TECHNOLOGY_CHANGED)) {
                 String newPhone = intent.getStringExtra(PhoneConstants.PHONE_NAME_KEY);
