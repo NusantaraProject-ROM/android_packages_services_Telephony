@@ -28,6 +28,7 @@ import com.android.internal.telephony.CallStateException;
 import com.android.internal.telephony.Connection;
 import com.android.internal.telephony.imsphone.ImsPhoneConnection;
 import com.android.internal.telephony.Phone;
+import com.android.phone.PhoneUtils;
 import com.android.phone.settings.SettingsConstants;
 
 import java.util.LinkedList;
@@ -224,7 +225,8 @@ final class CdmaConnection extends TelephonyConnection {
             } catch (CallStateException e) {
                 Log.e(this, e, "Failed to hangup call waiting call");
             }
-            setDisconnected(DisconnectCauseUtil.toTelecomDisconnectCause(telephonyDisconnectCause));
+            setDisconnected(DisconnectCauseUtil.toTelecomDisconnectCause(telephonyDisconnectCause,
+                    null, getPhone().getPhoneId()));
         }
     }
 
@@ -282,10 +284,7 @@ final class CdmaConnection extends TelephonyConnection {
     }
 
     private boolean isEmergency() {
-        Phone phone = getPhone();
-        return phone != null &&
-                PhoneNumberUtils.isLocalEmergencyNumber(
-                    phone.getContext(), getAddress().getSchemeSpecificPart());
+        return PhoneUtils.isLocalEmergencyNumber(getAddress().getSchemeSpecificPart());
     }
 
     /**

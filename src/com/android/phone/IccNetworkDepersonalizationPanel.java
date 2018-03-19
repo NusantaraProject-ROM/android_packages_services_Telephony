@@ -25,6 +25,7 @@ import android.os.PersistableBundle;
 import android.os.RemoteException;
 import android.os.ServiceManager;
 import android.telephony.CarrierConfigManager;
+import android.telephony.TelephonyManager;
 import android.text.Editable;
 import android.text.Spannable;
 import android.text.TextUtils;
@@ -69,7 +70,8 @@ public class IccNetworkDepersonalizationPanel extends IccPanel {
     private Phone mPhone;
     private int mPersoSubtype;
     private int ERROR = 1;
-    private static IccNetworkDepersonalizationPanel sNdpPanel = null;
+    private static IccNetworkDepersonalizationPanel [] sNdpPanel =
+            new IccNetworkDepersonalizationPanel[TelephonyManager.getDefault().getSimCount()];
 
     //UI elements
     private EditText     mPinEntry;
@@ -95,20 +97,22 @@ public class IccNetworkDepersonalizationPanel extends IccPanel {
     /**
      * Shows the network depersonalization dialog, but only if it is not already visible.
      */
-    public static void showDialog(int subType) {
+    public static void showDialog(Phone phone, int subType) {
         if (sShowingDialog) {
             Log.i(TAG, "[IccNetworkDepersonalizationPanel] - showDialog; skipped already shown.");
             return;
         }
         Log.i(TAG, "[IccNetworkDepersonalizationPanel] - showDialog; showing dialog.");
         sShowingDialog = true;
-        sNdpPanel = new IccNetworkDepersonalizationPanel(PhoneGlobals.getInstance(), subType);
-        sNdpPanel.show();
+        int phoneId = phone == null ? 0: phone.getPhoneId();
+        sNdpPanel[phoneId] = new IccNetworkDepersonalizationPanel(PhoneGlobals.getInstance(),
+                phone, subType);
+        sNdpPanel[phoneId].show();
     }
 
-    public static void dialogDismiss() {
-        if (sNdpPanel != null && sShowingDialog) {
-            sNdpPanel.dismiss();
+    public static void dialogDismiss(int phoneId) {
+        if (sNdpPanel[phoneId] != null && sShowingDialog) {
+            sNdpPanel[phoneId].dismiss();
         }
     }
 
@@ -167,12 +171,15 @@ public class IccNetworkDepersonalizationPanel extends IccPanel {
     //constructor
     public IccNetworkDepersonalizationPanel(Context context) {
         super(context);
+        mPhone = PhoneGlobals.getPhone();
         mPersoSubtype = PersoSubState.PERSOSUBSTATE_SIM_NETWORK.ordinal();
     }
 
     //constructor
-    public IccNetworkDepersonalizationPanel(Context context, int subtype) {
+    public IccNetworkDepersonalizationPanel(Context context, Phone phone,
+            int subtype) {
         super(context);
+        mPhone = phone == null ? PhoneGlobals.getPhone() : phone;
         mPersoSubtype = subtype;
     }
 
@@ -215,8 +222,6 @@ public class IccNetworkDepersonalizationPanel extends IccPanel {
         //status panel is used since we're having problems with the alert dialog.
         mStatusPanel = (LinearLayout) findViewById(R.id.status_panel);
         mStatusText = (TextView) findViewById(R.id.status_text);
-
-        mPhone = PhoneGlobals.getPhone();
     }
 
     @Override

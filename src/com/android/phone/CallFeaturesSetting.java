@@ -25,6 +25,7 @@ import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.content.pm.PackageManager.NameNotFoundException;
 import android.content.pm.ResolveInfo;
+import android.content.pm.ApplicationInfo;
 import android.os.Bundle;
 import android.os.PersistableBundle;
 import android.os.UserManager;
@@ -53,6 +54,8 @@ import com.android.phone.settings.VoicemailSettingsActivity;
 import com.android.phone.settings.fdn.FdnSetting;
 
 import java.util.List;
+
+import org.codeaurora.ims.QtiCallConstants;
 
 /**
  * Top level "Call settings" UI; see res/xml/call_feature_setting.xml
@@ -92,6 +95,7 @@ public class CallFeaturesSetting extends PreferenceActivity
             "phone_account_settings_preference_screen";
 
     private static final String ENABLE_VIDEO_CALLING_KEY = "button_enable_video_calling";
+    private static final String BUTTON_IMS_SETTINGS_KEY   = "ims_settings_key";
 
     private Phone mPhone;
     private ImsManager mImsMgr;
@@ -101,6 +105,8 @@ public class CallFeaturesSetting extends PreferenceActivity
     private SwitchPreference mButtonAutoRetry;
     private PreferenceScreen mVoicemailSettingsScreen;
     private SwitchPreference mEnableVideoCalling;
+    private Preference mButtonWifiCalling;
+    private PreferenceScreen mImsSettingsScreen;
 
     /*
      * Click Listeners, handle click based on objects attached to UI.
@@ -132,7 +138,7 @@ public class CallFeaturesSetting extends PreferenceActivity
 
         if (preference == mEnableVideoCalling) {
             if (mImsMgr.isEnhanced4gLteModeSettingEnabledByUser()) {
-                PhoneGlobals.getInstance().phoneMgr.enableVideoCalling((boolean) objValue);
+                mImsMgr.setVtSetting((boolean) objValue);
             } else {
                 AlertDialog.Builder builder = new AlertDialog.Builder(this);
                 DialogInterface.OnClickListener networkSettingsClickListener =
@@ -205,6 +211,8 @@ public class CallFeaturesSetting extends PreferenceActivity
                         (TelephonyManager) getSystemService(Context.TELEPHONY_SERVICE);
                 mEnableVideoCalling.setEnabled(
                         telephonyManager.getCallState() == TelephonyManager.CALL_STATE_IDLE);
+                mButtonWifiCalling.setEnabled(
+                        telephonyManager.getCallState() == TelephonyManager.CALL_STATE_IDLE);
             }
         }
     };
@@ -244,6 +252,8 @@ public class CallFeaturesSetting extends PreferenceActivity
         mButtonAutoRetry = (SwitchPreference) findPreference(BUTTON_RETRY_KEY);
 
         mEnableVideoCalling = (SwitchPreference) findPreference(ENABLE_VIDEO_CALLING_KEY);
+        mButtonWifiCalling = findPreference(getResources().getString(
+                R.string.wifi_calling_settings_key));
 
         PersistableBundle carrierConfig =
                 PhoneGlobals.getInstance().getCarrierConfigForSubId(mPhone.getSubId());
@@ -293,14 +303,42 @@ public class CallFeaturesSetting extends PreferenceActivity
             }
         }
 
+        mImsSettingsScreen = (PreferenceScreen) findPreference(BUTTON_IMS_SETTINGS_KEY);
+        if (isImsSettingsApkAvailable(mPhone.getContext())) {
+            ImsManager imsManager = ImsManager.getInstance(mPhone.getContext(),
+                    mPhone.getPhoneId());
+            try {
+                if ((imsManager.isVolteEnabledByPlatform() || imsManager.isVtEnabledByPlatform() ||
+                        imsManager.isWfcEnabledByPlatform()) &&
+                        imsManager.getImsServiceState() == ImsFeature.STATE_READY) {
+                    mImsSettingsScreen.setOnPreferenceClickListener(
+                            new Preference.OnPreferenceClickListener() {
+                         @Override
+                         public boolean onPreferenceClick(Preference preference) {
+                             Intent intent = new Intent("org.codeaurora.IMS_SETTINGS");
+                             intent.putExtra(QtiCallConstants.EXTRA_PHONE_ID, mPhone.getPhoneId());
+                             startActivity(intent);
+                             return true;
+                         }
+                    });
+                } else {
+                    prefSet.removePreference(mImsSettingsScreen);
+                }
+            } catch (ImsException ex) {
+                log("Exception when trying to get ImsServiceStatus: " + ex);
+                prefSet.removePreference(mImsSettingsScreen);
+            }
+        } else {
+            prefSet.removePreference(mImsSettingsScreen);
+        }
+
         if (mImsMgr.isVtEnabledByPlatform() && mImsMgr.isVtProvisionedOnDevice()
                 && (carrierConfig.getBoolean(
                         CarrierConfigManager.KEY_IGNORE_DATA_ENABLED_CHANGED_FOR_VIDEO_CALLS)
                 || mPhone.mDcTracker.isDataEnabled())) {
             boolean currentValue =
                     mImsMgr.isEnhanced4gLteModeSettingEnabledByUser()
-                    ? PhoneGlobals.getInstance().phoneMgr.isVideoCallingEnabled(
-                            getOpPackageName()) : false;
+                    ? mImsMgr.isVtEnabledByUser() : false;
             mEnableVideoCalling.setChecked(currentValue);
             mEnableVideoCalling.setOnPreferenceChangeListener(this);
         } else {
@@ -314,9 +352,6 @@ public class CallFeaturesSetting extends PreferenceActivity
             /* tm.listen(mPhoneStateListener, PhoneStateListener.LISTEN_CALL_STATE); */
         }
 
-        Preference wifiCallingSettings = findPreference(
-                getResources().getString(R.string.wifi_calling_settings_key));
-
         final PhoneAccountHandle simCallManager = mTelecomManager.getSimCallManager();
         if (simCallManager != null) {
             Intent intent = PhoneAccountSettingsFragment.buildPhoneAccountConfigureIntent(
@@ -325,21 +360,21 @@ public class CallFeaturesSetting extends PreferenceActivity
                 PackageManager pm = mPhone.getContext().getPackageManager();
                 List<ResolveInfo> resolutions = pm.queryIntentActivities(intent, 0);
                 if (!resolutions.isEmpty()) {
-                    wifiCallingSettings.setTitle(resolutions.get(0).loadLabel(pm));
-                    wifiCallingSettings.setSummary(null);
-                    wifiCallingSettings.setIntent(intent);
+                    mButtonWifiCalling.setTitle(resolutions.get(0).loadLabel(pm));
+                    mButtonWifiCalling.setSummary(null);
+                    mButtonWifiCalling.setIntent(intent);
                 } else {
-                    prefSet.removePreference(wifiCallingSettings);
+                    prefSet.removePreference(mButtonWifiCalling);
                 }
             } else {
-                prefSet.removePreference(wifiCallingSettings);
+                prefSet.removePreference(mButtonWifiCalling);
             }
         } else if (!mImsMgr.isWfcEnabledByPlatform() || !mImsMgr.isWfcProvisionedOnDevice()) {
-            prefSet.removePreference(wifiCallingSettings);
+            prefSet.removePreference(mButtonWifiCalling);
         } else {
             int resId = com.android.internal.R.string.wifi_calling_off_summary;
             if (mImsMgr.isWfcEnabledByUser()) {
-                boolean isRoaming = telephonyManager.isNetworkRoaming();
+                boolean isRoaming = telephonyManager.isNetworkRoaming(mPhone.getSubId());
                 int wfcMode = mImsMgr.getWfcMode(isRoaming);
                 switch (wfcMode) {
                     case ImsConfig.WfcModeFeatureValueConstants.WIFI_ONLY:
@@ -355,19 +390,19 @@ public class CallFeaturesSetting extends PreferenceActivity
                         if (DBG) log("Unexpected WFC mode value: " + wfcMode);
                 }
             }
-            wifiCallingSettings.setSummary(resId);
+            mButtonWifiCalling.setSummary(resId);
         }
 
         try {
             if (mImsMgr.getImsServiceState() != ImsFeature.STATE_READY) {
                 log("Feature state not ready so remove vt and wfc settings for "
                         + " phone =" + mPhone.getPhoneId());
-                prefSet.removePreference(wifiCallingSettings);
+                prefSet.removePreference(mButtonWifiCalling);
                 prefSet.removePreference(mEnableVideoCalling);
             }
         } catch (ImsException ex) {
             log("Exception when trying to get ImsServiceStatus: " + ex);
-            prefSet.removePreference(wifiCallingSettings);
+            prefSet.removePreference(mButtonWifiCalling);
             prefSet.removePreference(mEnableVideoCalling);
         }
     }
@@ -442,5 +477,25 @@ public class CallFeaturesSetting extends PreferenceActivity
         intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
         activity.startActivity(intent);
         activity.finish();
+    }
+
+    /**
+     * check whether ImsSettings apk exist in system, if yes, return true, else
+     * return false.
+     */
+    public static boolean isImsSettingsApkAvailable(Context context) {
+        // check whether the target handler exist in system
+        Intent intent = new Intent("org.codeaurora.IMS_SETTINGS");
+        PackageManager pm = context.getPackageManager();
+        List<ResolveInfo> list = pm.queryIntentActivities(intent, 0);
+        for (ResolveInfo resolveInfo : list) {
+            // check is it installed in system.img, exclude the application
+            // installed by user
+            if ((resolveInfo.activityInfo.applicationInfo.flags &
+                    ApplicationInfo.FLAG_SYSTEM) != 0) {
+                return true;
+            }
+        }
+        return false;
     }
 }

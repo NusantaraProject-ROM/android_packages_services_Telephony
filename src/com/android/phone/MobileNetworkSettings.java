@@ -16,6 +16,8 @@
 
 package com.android.phone;
 
+import static android.provider.Telephony.Carriers.ENFORCE_MANAGED_URI;
+
 import android.app.ActionBar;
 import android.app.Activity;
 import android.app.DialogFragment;
@@ -30,6 +32,8 @@ import android.content.IntentFilter;
 import android.content.ServiceConnection;
 import android.content.pm.PackageManager;
 import android.content.pm.ResolveInfo;
+import android.database.ContentObserver;
+import android.database.Cursor;
 import android.net.Uri;
 import android.os.AsyncResult;
 import android.os.Bundle;
@@ -181,6 +185,20 @@ public class MobileNetworkSettings extends Activity  {
         return true;
     }
 
+    /**
+     * Returns if DPC APNs are enforced.
+     */
+    public static boolean isDpcApnEnforced(Context context) {
+        try (Cursor enforceCursor = context.getContentResolver().query(ENFORCE_MANAGED_URI,
+                null, null, null, null)) {
+            if (enforceCursor == null || enforceCursor.getCount() != 1) {
+                return false;
+            }
+            enforceCursor.moveToFirst();
+            return enforceCursor.getInt(0) > 0;
+        }
+    }
+
     public static class MobileNetworkFragment extends PreferenceFragment implements
             Preference.OnPreferenceChangeListener, RoamingDialogFragment.RoamingDialogListener {
 
@@ -222,6 +240,7 @@ public class MobileNetworkSettings extends Activity  {
         private static final String BUTTON_CDMA_APN_EXPAND_KEY = "button_cdma_apn_key";
 
         private final BroadcastReceiver mPhoneChangeReceiver = new PhoneChangeReceiver();
+        private final ContentObserver mDpcEnforcedContentObserver = new DpcApnEnforcedObserver();
 
         static final int preferredNetworkMode = Phone.PREFERRED_NT_MODE;
 
@@ -273,12 +292,10 @@ public class MobileNetworkSettings extends Activity  {
         private boolean mIsGlobalCdma;
         private boolean mUnavailable;
 
-        private final PhoneStateListener mPhoneStateListener = new PhoneStateListener() {
+        private class PhoneCallStateListener extends PhoneStateListener {
             /*
-             * Enable/disable the 'Enhanced 4G LTE Mode' and 'Carrier video calling'
-             * when in/out of a call. 'Enhanced 4G LTE Mode' depends on TTY mode
-             * and TTY support over VoLTE.
-             *
+             * Enable/disable the 'Enhanced 4G LTE Mode' when in/out of a call
+             * and depending on TTY mode and TTY support over VoLTE.
              * @see android.telephony.PhoneStateListener#onCallStateChanged(int,
              * java.lang.String)
              */
@@ -286,17 +303,31 @@ public class MobileNetworkSettings extends Activity  {
             public void onCallStateChanged(int state, String incomingNumber) {
                 if (DBG) log("PhoneStateListener.onCallStateChanged: state=" + state);
 
-                int subId = mPhone != null
-                        ? mPhone.getSubId() : SubscriptionManager.INVALID_SUBSCRIPTION_ID;
-                PersistableBundle carrierConfig =
-                        PhoneGlobals.getInstance().getCarrierConfigForSubId(subId);
-                boolean enabled = is4gLtePrefEnabled(carrierConfig);
-                Preference pref = getPreferenceScreen().findPreference(BUTTON_4G_LTE_KEY);
-                if (pref != null) pref.setEnabled(enabled && hasActiveSubscriptions());
-
+                updateEnhanced4gLteState();
+                updateWiFiCallState();
                 updateVideoCallState();
             }
-        };
+
+            /*
+             * Listen to different subId if mPhone is updated.
+             */
+            protected void updatePhone() {
+                int newSubId = (mPhone != null
+                        && SubscriptionManager.isValidSubscriptionId(mPhone.getSubId()))
+                        ? mPhone.getSubId()
+                        : SubscriptionManager.INVALID_SUBSCRIPTION_ID;
+
+                // Now, listen to new subId if it's valid.
+                mTelephonyManager.listen(this, PhoneStateListener.LISTEN_NONE);
+
+                mSubId = newSubId;
+                if (SubscriptionManager.isValidSubscriptionId(mSubId)) {
+                    mTelephonyManager.listen(this, PhoneStateListener.LISTEN_CALL_STATE);
+                }
+            }
+        }
+
+        private final PhoneCallStateListener mPhoneStateListener = new PhoneCallStateListener();
 
         /**
          * Service connection code for the NetworkQueryService.
@@ -603,7 +634,6 @@ public class MobileNetworkSettings extends Activity  {
                 int phoneId = SubscriptionManager.getPhoneId(sir.getSubscriptionId());
                 if (SubscriptionManager.isValidPhoneId(phoneId)) {
                     mPhone = PhoneFactory.getPhone(phoneId);
-                    mImsMgr = ImsManager.getInstance(getContext(), phoneId);
                 }
             }
             if (mPhone == null) {
@@ -613,11 +643,14 @@ public class MobileNetworkSettings extends Activity  {
             Log.i(LOG_TAG, "updatePhone:- slotId=" + slotId + " sir=" + sir);
 
             mImsMgr = ImsManager.getInstance(mPhone.getContext(), mPhone.getPhoneId());
+            mTelephonyManager = new TelephonyManager(mPhone.getContext(), mPhone.getSubId());
             if (mImsMgr == null) {
                 log("updatePhone :: Could not get ImsManager instance!");
             } else if (DBG) {
                 log("updatePhone :: mImsMgr=" + mImsMgr);
             }
+
+            mPhoneStateListener.updatePhone();
         }
 
         private TabHost.TabContentFactory mEmptyTabContent = new TabHost.TabContentFactory() {
@@ -718,6 +751,9 @@ public class MobileNetworkSettings extends Activity  {
                     TelephonyIntents.ACTION_RADIO_TECHNOLOGY_CHANGED);
             activity.registerReceiver(mPhoneChangeReceiver, intentFilter);
 
+            activity.getContentResolver().registerContentObserver(ENFORCE_MANAGED_URI, false,
+                    mDpcEnforcedContentObserver);
+
             Log.i(LOG_TAG, "onCreate:-");
         }
 
@@ -750,12 +786,26 @@ public class MobileNetworkSettings extends Activity  {
             }
         }
 
+        private class DpcApnEnforcedObserver extends ContentObserver {
+            DpcApnEnforcedObserver() {
+                super(null);
+            }
+
+            @Override
+            public void onChange(boolean selfChange) {
+                Log.i(LOG_TAG, "DPC enforced onChange:");
+                updateBody();
+            }
+        }
+
         @Override
         public void onDestroy() {
             unbindNetworkQueryService();
             super.onDestroy();
             if (getActivity() != null) {
                 getActivity().unregisterReceiver(mPhoneChangeReceiver);
+                getActivity().getContentResolver().unregisterContentObserver(
+                        mDpcEnforcedContentObserver);
             }
         }
 
@@ -1079,7 +1129,6 @@ public class MobileNetworkSettings extends Activity  {
              * but you do need to remember that this all needs to work when subscriptions
              * change dynamically such as when hot swapping sims.
              */
-            boolean canChange4glte = is4gLtePrefEnabled(carrierConfig);
             boolean useVariant4glteTitle = carrierConfig.getBoolean(
                     CarrierConfigManager.KEY_ENHANCED_4G_LTE_TITLE_VARIANT_BOOL);
             int enhanced4glteModeTitleId = useVariant4glteTitle ?
@@ -1089,7 +1138,6 @@ public class MobileNetworkSettings extends Activity  {
             mButtonPreferredNetworkMode.setEnabled(hasActiveSubscriptions);
             mButtonEnabledNetworks.setEnabled(hasActiveSubscriptions);
             mButton4glte.setTitle(enhanced4glteModeTitleId);
-            mButton4glte.setEnabled(hasActiveSubscriptions && canChange4glte);
             mLteDataServicePref.setEnabled(hasActiveSubscriptions);
             Preference ps;
             ps = findPreference(BUTTON_CELL_BROADCAST_SETTINGS);
@@ -1307,7 +1355,8 @@ public class MobileNetworkSettings extends Activity  {
         }
 
         private boolean is4gLtePrefEnabled(PersistableBundle carrierConfig) {
-            return (mTelephonyManager.getCallState() == TelephonyManager.CALL_STATE_IDLE)
+            return (mTelephonyManager.getCallState(mPhone.getSubId())
+                    == TelephonyManager.CALL_STATE_IDLE)
                     && mImsMgr != null
                     && mImsMgr.isNonTtyOrTtyOnVolteEnabled()
                     && carrierConfig.getBoolean(
@@ -1698,6 +1747,8 @@ public class MobileNetworkSettings extends Activity  {
                 mCallingCategory.removePreference(mWiFiCallingPref);
             } else {
                 mCallingCategory.addPreference(mWiFiCallingPref);
+                mWiFiCallingPref.setEnabled(mTelephonyManager.getCallState(mPhone.getSubId())
+                        == TelephonyManager.CALL_STATE_IDLE && hasActiveSubscriptions());
             }
         }
 
@@ -1718,7 +1769,8 @@ public class MobileNetworkSettings extends Activity  {
                         CarrierConfigManager.KEY_HIDE_ENHANCED_4G_LTE_BOOL))) {
                     getPreferenceScreen().removePreference(mButton4glte);
                 } else {
-                    // NOTE: Buttons will be enabled/disabled in mPhoneStateListener
+                    mButton4glte.setEnabled(is4gLtePrefEnabled(carrierConfig)
+                            && hasActiveSubscriptions());
                     boolean enh4glteMode = mImsMgr.isEnhanced4gLteModeSettingEnabledByUser()
                             && mImsMgr.isNonTtyOrTtyOnVolteEnabled();
                     mButton4glte.setChecked(enh4glteMode);
@@ -1748,8 +1800,8 @@ public class MobileNetworkSettings extends Activity  {
                     mVideoCallingPref.setEnabled(false);
                     mVideoCallingPref.setChecked(false);
                 } else {
-                    mVideoCallingPref.setEnabled(
-                            mTelephonyManager.getCallState() == TelephonyManager.CALL_STATE_IDLE);
+                    mVideoCallingPref.setEnabled(mTelephonyManager.getCallState(mPhone.getSubId())
+                            == TelephonyManager.CALL_STATE_IDLE && hasActiveSubscriptions());
                     mVideoCallingPref.setChecked(mImsMgr.isVtEnabledByUser());
                     mVideoCallingPref.setOnPreferenceChangeListener(this);
                 }
