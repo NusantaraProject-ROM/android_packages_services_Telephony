@@ -36,6 +36,8 @@ import android.telecom.VideoProfile;
 import android.telephony.CarrierConfigManager;
 import android.telephony.DisconnectCause;
 import android.telephony.PhoneNumberUtils;
+import android.telephony.SubscriptionInfo;
+import android.telephony.SubscriptionManager;
 import android.telephony.TelephonyManager;
 import android.telephony.ims.ImsCallProfile;
 import android.text.TextUtils;
@@ -57,6 +59,8 @@ import com.android.phone.ImsUtil;
 import com.android.phone.PhoneGlobals;
 import com.android.phone.PhoneUtils;
 import com.android.phone.R;
+
+import org.codeaurora.ims.utils.QtiImsExtUtils;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -98,6 +102,14 @@ abstract class TelephonyConnection extends Connection implements Holdable,
     private static final int MSG_CDMA_VOICE_PRIVACY_OFF = 16;
     private static final int MSG_HANGUP = 17;
     private static final int MSG_CONNECTION_REMOVED = 18;
+
+    private boolean mIsEmergencyNumber = false;
+    /**
+     * Extra indicating the conference support from lower layers
+     * <p>
+     * Type: boolean (true if conference is supported else false)
+     */
+    static final String CONF_SUPPORT_IND_EXTRA_KEY = "ConfSupportInd";
 
     private final Handler mHandler = new Handler(Looper.getMainLooper()) {
         @Override
@@ -963,6 +975,20 @@ abstract class TelephonyConnection extends Connection implements Holdable,
         }
     }
 
+    public void performAddParticipant(String participant) {
+        Log.d(this, "performAddParticipant - %s", participant);
+        if (getPhone() != null) {
+            try {
+                // We should send AddParticipant request using connection.
+                // Basically, you can make call to conference with AddParticipant
+                // request on single normal call.
+                getPhone().addParticipant(participant);
+            } catch (CallStateException e) {
+                Log.e(this, e, "Failed to performAddParticipant.");
+            }
+        }
+    }
+
     /**
      * Builds connection capabilities common to all TelephonyConnections. Namely, apply IMS-based
      * capabilities.
@@ -996,6 +1022,7 @@ abstract class TelephonyConnection extends Connection implements Holdable,
         newCapabilities = applyConferenceTerminationCapabilities(newCapabilities);
         newCapabilities = changeBitmask(newCapabilities, CAPABILITY_SUPPORT_DEFLECT,
                 isImsConnection() && canDeflectImsCalls());
+        newCapabilities = applyAddParticipantCapabilities(newCapabilities);
 
         if (getConnectionCapabilities() != newCapabilities) {
             setConnectionCapabilities(newCapabilities);
@@ -1109,6 +1136,13 @@ abstract class TelephonyConnection extends Connection implements Holdable,
         mOriginalConnection.addPostDialListener(mPostDialListener);
         mOriginalConnection.addListener(mOriginalConnectionListener);
 
+        if (mOriginalConnection != null && mOriginalConnection.getAddress() != null) {
+            mIsEmergencyNumber = PhoneNumberUtils.isEmergencyNumber(mOriginalConnection.
+                    getAddress());
+        }
+
+        updateAddress();
+
         // Set video state and capabilities
         setVideoState(mOriginalConnection.getVideoState());
         setOriginalConnectionCapabilities(mOriginalConnection.getConnectionCapabilities());
@@ -1129,13 +1163,17 @@ abstract class TelephonyConnection extends Connection implements Holdable,
             mTreatAsEmergencyCall = true;
         }
 
-        if (isImsConnection()) {
-            mWasImsConnection = true;
-        }
-        mIsMultiParty = mOriginalConnection.isMultiparty();
-
         Bundle extrasToPut = new Bundle();
         List<String> extrasToRemove = new ArrayList<>();
+
+        if (isImsConnection()) {
+            mWasImsConnection = true;
+        } else {
+            extrasToRemove.add(QtiImsExtUtils.QTI_IMS_PHONE_ID_EXTRA_KEY);
+        }
+
+        mIsMultiParty = mOriginalConnection.isMultiparty();
+
         if (mOriginalConnection.isActiveCallDisconnectedOnAnswer()) {
             extrasToPut.putBoolean(Connection.EXTRA_ANSWERING_DROPS_FG_CALL, true);
         } else {
@@ -1238,7 +1276,7 @@ abstract class TelephonyConnection extends Connection implements Holdable,
                 wasVideoCall = call.wasVideoCall();
             }
 
-            isVowifiEnabled = ImsUtil.isWfcEnabled(phone.getContext());
+            isVowifiEnabled = ImsUtil.isWfcEnabled(phone.getContext(), phone.getPhoneId());
         }
 
         if (isCurrentVideoCall) {
@@ -1511,6 +1549,12 @@ abstract class TelephonyConnection extends Connection implements Holdable,
 
                     // Ensure extras are propagated to Telecom.
                     putExtras(mOriginalConnectionExtras);
+                    // If extras contain Conference support information,
+                    // then ensure capabilities are updated and propagated to Telecom.
+                    if (mOriginalConnectionExtras.containsKey(
+                            CONF_SUPPORT_IND_EXTRA_KEY)) {
+                        updateConnectionCapabilities();
+                    }
                 } else {
                     Log.d(this, "Extras update not required");
                 }
@@ -1615,7 +1659,8 @@ abstract class TelephonyConnection extends Connection implements Holdable,
                         setDisconnected(DisconnectCauseUtil.toTelecomDisconnectCause(
                                 mOriginalConnection.getDisconnectCause(),
                                 preciseDisconnectCause,
-                                mOriginalConnection.getVendorDisconnectCause()));
+                                mOriginalConnection.getVendorDisconnectCause(),
+                                getPhone().getPhoneId()));
                         close();
                     }
                     break;
@@ -1649,7 +1694,6 @@ abstract class TelephonyConnection extends Connection implements Holdable,
 
         if (mIsMultiParty != mOriginalConnection.isMultiparty()) {
             mIsMultiParty = mOriginalConnection.isMultiparty();
-
             if (mIsMultiParty) {
                 notifyConferenceStarted();
             }
@@ -1790,6 +1834,43 @@ abstract class TelephonyConnection extends Connection implements Holdable,
         }
 
         return currentCapabilities;
+    }
+
+    /**
+     * Applies the add participant capabilities to the {@code CallCapabilities} bit-mask.
+     *
+     * @param callCapabilities The {@code CallCapabilities} bit-mask.
+     * @return The capabilities with the add participant capabilities applied.
+     */
+    private int applyAddParticipantCapabilities(int callCapabilities) {
+        int currentCapabilities = callCapabilities;
+        if (isAddParticipantCapable()) {
+            currentCapabilities = changeBitmask(currentCapabilities,
+                    Connection.CAPABILITY_ADD_PARTICIPANT, true);
+        } else {
+            currentCapabilities = changeBitmask(currentCapabilities,
+                    Connection.CAPABILITY_ADD_PARTICIPANT, false);
+        }
+
+        return currentCapabilities;
+    }
+
+    private boolean isAddParticipantCapable() {
+        boolean isCapable = getPhone() != null &&
+               (getPhone().getPhoneType() == PhoneConstants.PHONE_TYPE_IMS) &&
+               !mIsEmergencyNumber && (mConnectionState == Call.State.ACTIVE
+               || mConnectionState == Call.State.HOLDING);
+         /**
+         * For individual IMS calls, if the extra for remote conference support is
+         *     - indicated, then consider the same for add participant capability
+         *     - not indicated, then the add participant capability is same as before.
+         */
+        if (isCapable && (mOriginalConnection != null) && !mIsMultiParty) {
+            isCapable = mOriginalConnectionExtras.getBoolean(
+                    CONF_SUPPORT_IND_EXTRA_KEY, true);
+        }
+        Log.i(this, "isAddParticipantCapable: isCapable = " + isCapable);
+        return isCapable;
     }
 
     /**
@@ -2028,14 +2109,25 @@ abstract class TelephonyConnection extends Connection implements Holdable,
 
     private void updateStatusHints() {
         boolean isIncoming = isValidRingingCall();
-        if (mIsWifi && (isIncoming || getState() == STATE_ACTIVE)) {
-            int labelId = isIncoming
+        if (mIsWifi && (isIncoming || getState() == STATE_ACTIVE) &&
+                (getPhone() != null)) {
+            final int labelId = isIncoming
                     ? R.string.status_hint_label_incoming_wifi_call
                     : R.string.status_hint_label_wifi_call;
+            String displaySubId = "";
+            if (TelephonyManager.getDefault().getPhoneCount() > 1) {
+                final int phoneId = getPhone().getPhoneId();
+                SubscriptionInfo sub = SubscriptionManager.from(getPhone().getContext())
+                    .getActiveSubscriptionInfoForSimSlotIndex(phoneId);
+                if (sub != null) {
+                    displaySubId = sub.getDisplayName().toString();
+                    displaySubId  = " " + displaySubId;
+                }
+            }
 
             Context context = getPhone().getContext();
             setStatusHints(new StatusHints(
-                    context.getString(labelId),
+                    context.getString(labelId) + displaySubId,
                     Icon.createWithResource(
                             context.getResources(),
                             R.drawable.ic_signal_wifi_4_bar_24dp),
@@ -2135,7 +2227,7 @@ abstract class TelephonyConnection extends Connection implements Holdable,
         boolean isVoWifiEnabled = false;
         if (isIms) {
             ImsPhone imsPhone = (ImsPhone) phone;
-            isVoWifiEnabled = ImsUtil.isWfcEnabled(phone.getContext());
+            isVoWifiEnabled = ImsUtil.isWfcEnabled(phone.getContext(), phone.getPhoneId());
         }
         PhoneAccountHandle phoneAccountHandle = isIms ? PhoneUtils
                 .makePstnPhoneAccountHandle(phone.getDefaultPhone())

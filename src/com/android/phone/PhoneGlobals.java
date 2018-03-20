@@ -199,16 +199,17 @@ public class PhoneGlobals extends ContextWrapper {
                         // Normal case: show the "SIM network unlock" PIN entry screen.
                         // The user won't be able to do anything else until
                         // they enter a valid SIM network PIN.
+                        Phone phone = (Phone) ((AsyncResult) msg.obj).userObj;
                         int subType = (Integer)((AsyncResult)msg.obj).result;
                         Log.i(LOG_TAG, "show sim depersonal panel");
-                        IccNetworkDepersonalizationPanel.showDialog(subType);
+                        IccNetworkDepersonalizationPanel.showDialog(phone, subType);
                     }
                     break;
 
                 case EVENT_SIM_STATE_CHANGED_CHECKREADY:
                     if (msg.obj.equals(IccCardConstants.INTENT_VALUE_ICC_READY)) {
                         Log.i(LOG_TAG, "Dismissing depersonal panel");
-                        IccNetworkDepersonalizationPanel.dialogDismiss();
+                        IccNetworkDepersonalizationPanel.dialogDismiss(0);
                     }
                     break;
 
