@@ -42,6 +42,7 @@ import android.telephony.TelephonyManager;
 import android.telephony.ims.ImsCallProfile;
 import android.text.TextUtils;
 import android.util.Pair;
+import android.widget.Toast;
 
 import com.android.ims.ImsCall;
 import com.android.internal.telephony.Call;
@@ -133,6 +134,24 @@ abstract class TelephonyConnection extends Connection implements Holdable,
                             Log.d(TelephonyConnection.this,
                                     "SettingOriginalConnection " + mOriginalConnection.toString()
                                             + " with " + connection.toString());
+                            boolean isShowToast = false;
+                            Phone phone = getPhone();
+                            if (phone != null) {
+                                CarrierConfigManager cfgManager = (CarrierConfigManager) phone
+                                        .getContext().getSystemService(Context
+                                        .CARRIER_CONFIG_SERVICE);
+                                if (cfgManager != null) {
+                                    isShowToast = cfgManager.getConfigForSubId(phone.getSubId())
+                                            .getBoolean("config_show_srvcc_toast");
+                                }
+                            }
+                            if (isShowToast && !shouldTreatAsEmergencyCall()) {
+                                int srvccMessageRes = VideoProfile.isVideo(
+                                        mOriginalConnection.getVideoState()) ?
+                                        R.string.srvcc_video_message : R.string.srvcc_message;
+                                Toast.makeText(phone.getContext(),
+                                        srvccMessageRes, Toast.LENGTH_LONG).show();
+                            }
                             setOriginalConnection(connection);
                             mWasImsConnection = false;
                         }
