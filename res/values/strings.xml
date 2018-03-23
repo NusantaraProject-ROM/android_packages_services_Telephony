@@ -369,7 +369,7 @@
     <!-- Available networks screen, text when no networks are found -->
     <string name="empty_networks_list">No networks found.</string>
     <!-- Available networks screen, toast when an error is encountered when searching for networks -->
-    <string name="network_query_error">Error while searching for networks.</string>
+    <string name="network_query_error">Couldn\'t find networks. Try again.</string>
     <!-- Available networks screen, toast when registering on a specific network -->
     <string name="register_on_network">Registering on <xliff:g id="network">%s</xliff:g>\u2026</string>
     <!-- Available networks screen, toast when SIM card isn't allowed on a network -->
@@ -536,7 +536,9 @@
     <!-- Mobile network settings UI: notification message shown when you
          lose data connectivity because you're roaming and you have the
          "data roaming" feature turned off. -->
-    <string name="roaming_reenable_message">You\'ve lost data connectivity because you left your home network with data roaming turned off.</string>
+    <string name="roaming_reenable_message">Data roaming is turned off. Tap to turn on.</string>
+    <!-- Roaming notification tile, notifying lost of roaming data connection -->
+    <string name="roaming_notification_title">Lost mobile data connection</string>
     <!-- Mobile network settings screen, dialog message when user selects the Data roaming check box -->
     <string name="roaming_warning">You may incur significant charges.</string>
     <!-- Mobile network settings screen, message asking the user to check their pricing with their Carrier, when enabling Data roaming. -->
