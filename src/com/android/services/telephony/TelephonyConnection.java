@@ -1809,6 +1809,7 @@ abstract class TelephonyConnection extends Connection implements Holdable,
     private boolean isRtt() {
         return mOriginalConnection != null
                 && mOriginalConnection.getPhoneType() == PhoneConstants.PHONE_TYPE_IMS
+                && mOriginalConnection instanceof ImsPhoneConnection
                 && ((ImsPhoneConnection) mOriginalConnection).isRttEnabledForCall();
     }
 
