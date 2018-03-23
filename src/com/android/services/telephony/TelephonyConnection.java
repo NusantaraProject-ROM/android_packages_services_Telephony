@@ -25,6 +25,7 @@ import android.os.Handler;
 import android.os.Looper;
 import android.os.Message;
 import android.os.PersistableBundle;
+import android.widget.Toast;
 import android.telecom.CallAudioState;
 import android.telecom.ConferenceParticipant;
 import android.telecom.Connection;
@@ -112,6 +113,8 @@ abstract class TelephonyConnection extends Connection implements Holdable,
      */
     static final String CONF_SUPPORT_IND_EXTRA_KEY = "ConfSupportInd";
 
+    private SuppServiceNotification mSsNotification = null;
+
     private final Handler mHandler = new Handler(Looper.getMainLooper()) {
         @Override
         public void handleMessage(Message msg) {
@@ -190,8 +193,15 @@ abstract class TelephonyConnection extends Connection implements Holdable,
                     Log.v(TelephonyConnection.this, "MSG_SUPP_SERVICE_NOTIFY on phoneId : "
                             + (phone != null ? Integer.toString(phone.getPhoneId())
                             : "null"));
-                    SuppServiceNotification mSsNotification = null;
+                    if (phone == null) {
+                        break;
+                    }
                     if (msg.obj != null && ((AsyncResult) msg.obj).result != null) {
+                        if (mOriginalConnection != null && ((SuppServiceNotification)((AsyncResult)
+                                msg.obj).result).history != null && !(mConnectionState ==
+                                Call.State.DIALING || mConnectionState == Call.State.ALERTING)) {
+                           return;
+                        }
                         mSsNotification =
                                 (SuppServiceNotification)((AsyncResult) msg.obj).result;
                         if (mOriginalConnection != null) {
@@ -314,11 +324,23 @@ abstract class TelephonyConnection extends Connection implements Holdable,
      * @param code the {@link SuppServiceNotification#code}.
      */
     private void sendSuppServiceNotificationEvent(int type, int code) {
+       CharSequence notificationMessage = getSuppServiceMessage(type, code);
+       if (notificationMessage == null || notificationMessage.length() == 0) {
+           return;
+       }
+
+       if (TelephonyManager.getDefault().getPhoneCount() > 1) {
+           SubscriptionInfo sub = SubscriptionManager.from(getPhone().getContext())
+                   .getActiveSubscriptionInfoForSimSlotIndex(getPhone().getPhoneId());
+           if (sub != null && !TextUtils.isEmpty(sub.getDisplayName().toString())) {
+               notificationMessage = sub.getDisplayName().toString() + ":" + notificationMessage;
+           }
+        }
+
         Bundle extras = new Bundle();
         extras.putInt(TelephonyManager.EXTRA_NOTIFICATION_TYPE, type);
         extras.putInt(TelephonyManager.EXTRA_NOTIFICATION_CODE, code);
-        extras.putCharSequence(TelephonyManager.EXTRA_NOTIFICATION_MESSAGE,
-                getSuppServiceMessage(type, code));
+        extras.putCharSequence(TelephonyManager.EXTRA_NOTIFICATION_MESSAGE, notificationMessage);
         sendConnectionEvent(TelephonyManager.EVENT_SUPPLEMENTARY_SERVICE_NOTIFICATION, extras);
     }
 
@@ -1144,15 +1166,17 @@ abstract class TelephonyConnection extends Connection implements Holdable,
         mOriginalConnectionExtras.clear();
         mOriginalConnection = originalConnection;
         mOriginalConnection.setTelecomCallId(getTelecomCallId());
-        getPhone().registerForPreciseCallStateChanged(
-                mHandler, MSG_PRECISE_CALL_STATE_CHANGED, null);
-        getPhone().registerForHandoverStateChanged(
-                mHandler, MSG_HANDOVER_STATE_CHANGED, null);
-        getPhone().registerForRingbackTone(mHandler, MSG_RINGBACK_TONE, null);
-        getPhone().registerForSuppServiceNotification(mHandler, MSG_SUPP_SERVICE_NOTIFY, null);
-        getPhone().registerForOnHoldTone(mHandler, MSG_ON_HOLD_TONE, null);
-        getPhone().registerForInCallVoicePrivacyOn(mHandler, MSG_CDMA_VOICE_PRIVACY_ON, null);
-        getPhone().registerForInCallVoicePrivacyOff(mHandler, MSG_CDMA_VOICE_PRIVACY_OFF, null);
+        if (getPhone() != null) {
+            getPhone().registerForPreciseCallStateChanged(
+                    mHandler, MSG_PRECISE_CALL_STATE_CHANGED, null);
+            getPhone().registerForHandoverStateChanged(
+                    mHandler, MSG_HANDOVER_STATE_CHANGED, null);
+            getPhone().registerForRingbackTone(mHandler, MSG_RINGBACK_TONE, null);
+            getPhone().registerForSuppServiceNotification(mHandler, MSG_SUPP_SERVICE_NOTIFY, null);
+            getPhone().registerForOnHoldTone(mHandler, MSG_ON_HOLD_TONE, null);
+            getPhone().registerForInCallVoicePrivacyOn(mHandler, MSG_CDMA_VOICE_PRIVACY_ON, null);
+            getPhone().registerForInCallVoicePrivacyOff(mHandler, MSG_CDMA_VOICE_PRIVACY_OFF, null);
+        }
         mOriginalConnection.addPostDialListener(mPostDialListener);
         mOriginalConnection.addListener(mOriginalConnectionListener);
 
@@ -1685,16 +1709,28 @@ abstract class TelephonyConnection extends Connection implements Holdable,
                         fireOnOriginalConnectionRetryDial(cause
                                 == android.telephony.DisconnectCause.EMERGENCY_PERM_FAILURE);
                     } else {
-                        int preciseDisconnectCause = CallFailCause.NOT_VALID;
-                        if (mShowPreciseFailedCause) {
-                            preciseDisconnectCause =
-                                    mOriginalConnection.getPreciseDisconnectCause();
+                        if (mSsNotification != null) {
+                            setDisconnected(DisconnectCauseUtil.toTelecomDisconnectCause(
+                                    mOriginalConnection.getDisconnectCause(),
+                                    mOriginalConnection.getVendorDisconnectCause(),
+                                    mSsNotification.notificationType,
+                                    mSsNotification.code,
+                                    getPhone().getPhoneId()));
+                            mSsNotification = null;
+                            DisconnectCauseUtil.mNotificationCode = 0xFF;
+                            DisconnectCauseUtil.mNotificationType = 0xFF;
+                        } else {
+                            int preciseDisconnectCause = CallFailCause.NOT_VALID;
+                            if (mShowPreciseFailedCause) {
+                                preciseDisconnectCause =
+                                        mOriginalConnection.getPreciseDisconnectCause();
+                            }
+                            setDisconnected(DisconnectCauseUtil.toTelecomDisconnectCause(
+                                    mOriginalConnection.getDisconnectCause(),
+                                    preciseDisconnectCause,
+                                    mOriginalConnection.getVendorDisconnectCause(),
+                                    getPhone().getPhoneId()));
                         }
-                        setDisconnected(DisconnectCauseUtil.toTelecomDisconnectCause(
-                                mOriginalConnection.getDisconnectCause(),
-                                preciseDisconnectCause,
-                                mOriginalConnection.getVendorDisconnectCause(),
-                                getPhone().getPhoneId()));
                         close();
                     }
                     break;
