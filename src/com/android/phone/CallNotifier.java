@@ -569,7 +569,10 @@ public class CallNotifier extends Handler {
             if (DBG) log("onSuppServiceFailed: displaying reject failure message");
             mApplication.getResources().getString(
                     R.string.incall_error_supp_service_reject);
-        } else {
+        } else if (r.result == Phone.SuppService.HANGUP) {
+            mApplication.getResources().getString(
+                    R.string.incall_error_supp_service_hangup);
+        }  else {
             if (DBG) log("onSuppServiceFailed: unknown failure");
             return;
         }
