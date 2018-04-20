@@ -2736,7 +2736,11 @@ public class PhoneInterfaceManager extends ITelephony.Stub {
      * @hide
      */
     public boolean setImsService(int slotId, boolean isCarrierImsService, String packageName) {
-        enforceModifyPermission();
+        int[] subIds = SubscriptionManager.getSubId(slotId);
+        TelephonyPermissions.enforceCallingOrSelfModifyPermissionOrCarrierPrivilege(mApp,
+                (subIds != null ? subIds[0] : SubscriptionManager.INVALID_SUBSCRIPTION_ID),
+                "setImsService");
+
         return PhoneFactory.getImsResolver().overrideImsServiceConfiguration(slotId,
                 isCarrierImsService, packageName);
     }
@@ -2750,7 +2754,11 @@ public class PhoneInterfaceManager extends ITelephony.Stub {
      * @return the package name of the ImsService configuration.
      */
     public String getImsService(int slotId, boolean isCarrierImsService) {
-        enforceReadPrivilegedPermission();
+        int[] subIds = SubscriptionManager.getSubId(slotId);
+        TelephonyPermissions.enforceCallingOrSelfModifyPermissionOrCarrierPrivilege(mApp,
+                (subIds != null ? subIds[0] : SubscriptionManager.INVALID_SUBSCRIPTION_ID),
+                "getImsService");
+
         return PhoneFactory.getImsResolver().getImsServiceConfiguration(slotId,
                 isCarrierImsService);
     }
@@ -3395,6 +3403,11 @@ public class PhoneInterfaceManager extends ITelephony.Stub {
         boolean isDeviceSupported =
                 mPhone.getContext().getResources().getBoolean(R.bool.config_support_rtt);
         return isCarrierSupported && isDeviceSupported;
+    }
+
+    public boolean isRttEnabled() {
+        return isRttSupported() && Settings.Secure.getInt(mPhone.getContext().getContentResolver(),
+                Settings.Secure.RTT_CALLING_MODE, 0) != 0;
     }
 
     /**
@@ -4138,12 +4151,20 @@ public class PhoneInterfaceManager extends ITelephony.Stub {
         enforceReadPrivilegedPermission();
 
         UiccSlot[] slots = UiccController.getInstance().getUiccSlots();
-        if (slots == null) return null;
+        if (slots == null) {
+            Rlog.i(LOG_TAG, "slots is null.");
+            return null;
+        }
+
         UiccSlotInfo[] infos = new UiccSlotInfo[slots.length];
         for (int i = 0; i < slots.length; i++) {
             UiccSlot slot = slots[i];
 
-            String cardId = UiccController.getInstance().getUiccCard(i).getCardId();
+            String cardId = null;
+            UiccCard card = slot.getUiccCard();
+            if (card != null) {
+                cardId = card.getCardId();
+            }
 
             int cardState = 0;
             switch (slot.getCardState()) {
