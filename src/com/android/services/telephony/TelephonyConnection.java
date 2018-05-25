@@ -1973,6 +1973,9 @@ abstract class TelephonyConnection extends Connection implements Holdable,
         capabilities = changeBitmask(capabilities, CAPABILITY_SUPPORTS_VT_LOCAL_BIDIRECTIONAL,
                 can(mOriginalConnectionCapabilities, Capability.SUPPORTS_VT_LOCAL_BIDIRECTIONAL));
 
+        capabilities = changeBitmask(capabilities, CAPABILITY_SUPPORTS_RTT_REMOTE,
+                can(mOriginalConnectionCapabilities, Capability.SUPPORTS_RTT_REMOTE));
+
         return capabilities;
     }
 
