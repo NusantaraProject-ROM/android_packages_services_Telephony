@@ -267,8 +267,8 @@ public class GsmUmtsCallForwardOptions extends TimeConsumingPreferenceActivity
                     CallForwardInfo cf = new CallForwardInfo();
                     cf.number = bundle.getString(KEY_NUMBER);
                     cf.status = bundle.getInt(KEY_STATUS);
-                    pref.handleCallForwardResult(cf);
                     pref.init(this, true, mPhone, mReplaceInvalidCFNumbers, mServiceClass);
+                    pref.handleCallForwardResult(cf);
                 }
             }
             mFirstResume = false;
