@@ -1034,7 +1034,7 @@ public class TelephonyConnectionService extends ConnectionService {
         }
 
         Queue<Phone> cachedPhones = mEmergencyRetryCache.second;
-        Phone phoneUsed = c.getPhone();
+        Phone phoneUsed = mPhoneFactoryProxy.getPhone(c.getPhone().getPhoneId());
         if (phoneUsed == null) {
             return;
         }
