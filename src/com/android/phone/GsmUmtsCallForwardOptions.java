@@ -1,9 +1,5 @@
 package com.android.phone;
 
-import com.android.internal.telephony.CallForwardInfo;
-import com.android.internal.telephony.CommandsInterface;
-import com.android.internal.telephony.Phone;
-
 import android.app.ActionBar;
 import android.app.AlertDialog;
 import android.app.Dialog;
@@ -32,7 +28,9 @@ import com.android.ims.ImsManager;
 import com.android.internal.telephony.PhoneConstants;
 import com.android.internal.telephony.TelephonyIntents;
 
-import java.util.ArrayList;
+import com.android.internal.telephony.CallForwardInfo;
+import com.android.internal.telephony.CommandsInterface;
+import com.android.internal.telephony.Phone;
 
 public class GsmUmtsCallForwardOptions extends TimeConsumingPreferenceActivity
     implements DialogInterface.OnClickListener, DialogInterface.OnCancelListener {

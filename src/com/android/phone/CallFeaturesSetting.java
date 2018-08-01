@@ -207,12 +207,10 @@ public class CallFeaturesSetting extends PreferenceActivity
             if (mEnableVideoCalling != null) {
                 // Use TelephonyManager#getCallStete instead of 'state' parameter because it needs
                 // to check the current state of all phone calls.
-                TelephonyManager telephonyManager =
-                        (TelephonyManager) getSystemService(Context.TELEPHONY_SERVICE);
-                mEnableVideoCalling.setEnabled(
-                        telephonyManager.getCallState() == TelephonyManager.CALL_STATE_IDLE);
-                mButtonWifiCalling.setEnabled(
-                        telephonyManager.getCallState() == TelephonyManager.CALL_STATE_IDLE);
+                boolean isCallStateIdle =
+                        mTelecomManager.getCallState() == TelephonyManager.CALL_STATE_IDLE;
+                mEnableVideoCalling.setEnabled(isCallStateIdle);
+                mButtonWifiCalling.setEnabled(isCallStateIdle);
             }
         }
     };
@@ -222,7 +220,8 @@ public class CallFeaturesSetting extends PreferenceActivity
         super.onPause();
         TelephonyManager telephonyManager =
                 (TelephonyManager) getSystemService(Context.TELEPHONY_SERVICE);
-        telephonyManager.listen(mPhoneStateListener, PhoneStateListener.LISTEN_NONE);
+        telephonyManager.createForSubscriptionId(mPhone.getSubId())
+                .listen(mPhoneStateListener, PhoneStateListener.LISTEN_NONE);
     }
 
     @Override
@@ -237,8 +236,8 @@ public class CallFeaturesSetting extends PreferenceActivity
 
         addPreferencesFromResource(R.xml.call_feature_setting);
 
-        TelephonyManager telephonyManager =
-                (TelephonyManager) getSystemService(Context.TELEPHONY_SERVICE);
+        TelephonyManager telephonyManager = getSystemService(TelephonyManager.class)
+                .createForSubscriptionId(mPhone.getSubId());
         telephonyManager.listen(mPhoneStateListener, PhoneStateListener.LISTEN_CALL_STATE);
 
         PreferenceScreen prefSet = getPreferenceScreen();
@@ -349,7 +348,9 @@ public class CallFeaturesSetting extends PreferenceActivity
                         }
                     }
                 } else if (phoneType == PhoneConstants.PHONE_TYPE_GSM) {
-
+                    if (mPhone.getIccCard() == null || !mPhone.getIccCard().getIccFdnAvailable()) {
+                        prefSet.removePreference(fdnButton);
+                    }
                     if (carrierConfig.getBoolean(
                             CarrierConfigManager.KEY_ADDITIONAL_CALL_SETTING_BOOL)) {
                         addPreferencesFromResource(R.xml.gsm_umts_call_options);
@@ -401,13 +402,6 @@ public class CallFeaturesSetting extends PreferenceActivity
             mEnableVideoCalling.setOnPreferenceChangeListener(this);
         } else {
             prefSet.removePreference(mEnableVideoCalling);
-        }
-
-        if (mImsMgr.isVolteEnabledByPlatform()
-                && !carrierConfig.getBoolean(
-                        CarrierConfigManager.KEY_CARRIER_VOLTE_TTY_SUPPORTED_BOOL)) {
-            TelephonyManager tm = (TelephonyManager) getSystemService(Context.TELEPHONY_SERVICE);
-            /* tm.listen(mPhoneStateListener, PhoneStateListener.LISTEN_CALL_STATE); */
         }
 
         final PhoneAccountHandle simCallManager = mTelecomManager.getSimCallManager();

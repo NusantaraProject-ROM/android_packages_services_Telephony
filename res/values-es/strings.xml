@@ -499,6 +499,7 @@
     <string name="incall_error_cannot_add_call" msgid="8878159278947023326">"No se puede realizar la llamada en estos momentos. Intenta ponerte en contacto mediante un mensaje."</string>
     <string name="incall_error_supp_service_unknown" msgid="655570339115407698">"Servicio no admitido"</string>
     <string name="incall_error_supp_service_switch" msgid="5237002176899962862">"No se pueden intercambiar llamadas."</string>
+    <string name="incall_error_supp_service_resume" msgid="7147983409782027448">"No se ha podido reanudar la llamada."</string>
     <string name="incall_error_supp_service_separate" msgid="7224393405134545246">"No se pueden separar llamadas."</string>
     <string name="incall_error_supp_service_transfer" msgid="7235952238189391438">"No se puede transferir."</string>
     <string name="incall_error_supp_service_conference" msgid="2505727299596357312">"No se ha podido realizar la conferencia telefónica."</string>
@@ -507,7 +508,15 @@
     <string name="incall_error_supp_service_hold" msgid="7967020511232222078">"No se pueden retener llamadas."</string>
     <string name="incall_error_wfc_only_no_wireless_network" msgid="1782466780452640089">"Conéctate a una red inalámbrica para hacer llamadas."</string>
     <string name="incall_error_promote_wfc" msgid="106510757624022064">"Para llamar, tienes que habilitar las llamadas por Wi-Fi."</string>
+    <string name="emergency_information_title" msgid="4380389555729227377">"Información de emergencia"</string>
     <string name="emergency_enable_radio_dialog_title" msgid="4627849966634578257">"Llamada de emergencia"</string>
+    <string name="emergency_dialpad_title" msgid="6052294225467269233">"Solo llamadas de emergencia"</string>
+    <!-- no translation found for single_emergency_number_title (4959203129714396515) -->
+    <skip />
+    <!-- no translation found for numerous_emergency_numbers_title (754158099451343898) -->
+    <skip />
+    <!-- no translation found for emergency_call_shortcut_hint (6506167229097004348) -->
+    <skip />
     <string name="emergency_enable_radio_dialog_message" msgid="207613549344420291">"Activando señal móvil…"</string>
     <string name="emergency_enable_radio_dialog_retry" msgid="5960061579996526883">"Sin servicio. Reintentado…"</string>
     <string name="radio_off_during_emergency_call" msgid="2535800034010306830">"Durante una llamada de emergencia no se puede entrar en el modo avión."</string>
@@ -599,6 +608,7 @@
     <string name="selectContact" msgid="781975788478987237">"seleccionar contacto"</string>
     <string name="not_voice_capable" msgid="2739898841461577811">"Llamadas de voz no admitidas"</string>
     <string name="description_dial_button" msgid="7459705245418435351">"marcar"</string>
+    <string name="description_dialpad_button" msgid="5220006811894230590">"mostrar teclado"</string>
     <string name="voicemail_visual_voicemail_switch_title" msgid="5012622186976275457">"Buzón de voz visual"</string>
     <string name="voicemail_set_pin_dialog_title" msgid="2797924461029093837">"Configurar el PIN"</string>
     <string name="voicemail_change_pin_dialog_title" msgid="6035421908626121564">"Cambiar PIN"</string>
@@ -649,58 +659,58 @@
     <string name="mobile_data_activate_button" msgid="3682400969184405446">"AÑADIR DATOS"</string>
     <string name="mobile_data_activate_cancel_button" msgid="1708022171547398765">"CANCELAR"</string>
     <string name="clh_card_title_call_ended_txt" msgid="4072101334811753823">"Llamada finalizada"</string>
-    <string name="clh_callFailed_powerOff_txt" msgid="3773036949107147708">"Radio desconectada"</string>
-    <string name="clh_callFailed_simError_txt" msgid="757650590524277969">"No hay ninguna tarjeta SIM o se ha producido un error en la tarjeta SIM"</string>
+    <string name="clh_callFailed_powerOff_txt" msgid="1049579267090569308">"Está activado el modo avión"</string>
+    <string name="clh_callFailed_simError_txt" msgid="7273306159809203315">"No se puede acceder a la tarjeta SIM"</string>
     <string name="clh_incall_error_out_of_service_txt" msgid="3974373603657193827">"Red móvil no disponible"</string>
-    <string name="clh_callFailed_unassigned_number_txt" msgid="7635996793232604064">"Número no atribuido (no asignado)"</string>
-    <string name="clh_callFailed_no_route_to_destination_txt" msgid="8561586745288855167">"No hay ruta hacia el destino"</string>
-    <string name="clh_callFailed_channel_unacceptable_txt" msgid="8048626924246611459">"Canal inaceptable"</string>
-    <string name="clh_callFailed_operator_determined_barring_txt" msgid="6889705714244076823">"Precedencia"</string>
-    <string name="clh_callFailed_normal_call_clearing_txt" msgid="2810975267106345820">"Liberación normal de la llamada"</string>
+    <string name="clh_callFailed_unassigned_number_txt" msgid="4722164461846838251">"No se ha podido conectar con el número de teléfono al que estás llamando. Código de error 1."</string>
+    <string name="clh_callFailed_no_route_to_destination_txt" msgid="2259464183880140671">"No se ha podido completar la llamada. Código de error 3."</string>
+    <string name="clh_callFailed_channel_unacceptable_txt" msgid="3159336281525222855">"No se ha podido completar la llamada. Código de error 6."</string>
+    <string name="clh_callFailed_operator_determined_barring_txt" msgid="1831977101604817389">"No se ha podido completar la llamada. Código de error 8."</string>
+    <string name="clh_callFailed_normal_call_clearing_txt" msgid="7369313431310446847">"No se ha podido completar la llamada. Código de error 16."</string>
     <string name="clh_callFailed_user_busy_txt" msgid="2736095995784746915">"Usuario ocupado"</string>
-    <string name="clh_callFailed_no_user_responding_txt" msgid="1421543095873040084">"No hay respuesta del usuario"</string>
-    <string name="clh_callFailed_user_alerting_txt" msgid="6606245970376797447">"No hay respuesta del usuario (usuario avisado)"</string>
+    <string name="clh_callFailed_no_user_responding_txt" msgid="3675206502567252162">"El usuario no responde"</string>
+    <string name="clh_callFailed_user_alerting_txt" msgid="363445537769733281">"No se ha podido completar la llamada. Código de error 19."</string>
     <string name="clh_callFailed_call_rejected_txt" msgid="8001665478195793223">"Llamada rechazada"</string>
     <string name="clh_callFailed_number_changed_txt" msgid="5127909898925154242">"Número cambiado"</string>
-    <string name="clh_callFailed_pre_emption_txt" msgid="6864702416751338567">"Error de encaminamiento de central"</string>
-    <string name="clh_callFailed_non_selected_user_clearing_txt" msgid="8725898326616836656">"Liberación por usuario no seleccionado"</string>
-    <string name="clh_callFailed_destination_out_of_order_txt" msgid="6626355413556362437">"Destino fuera de servicio"</string>
+    <string name="clh_callFailed_pre_emption_txt" msgid="1100414016302714854">"No se ha podido completar la llamada. Código de error 25."</string>
+    <string name="clh_callFailed_non_selected_user_clearing_txt" msgid="6248192300127702626">"No se ha podido completar la llamada. Código de error 26."</string>
+    <string name="clh_callFailed_destination_out_of_order_txt" msgid="4879936907430554772">"No se ha podido completar la llamada. Código de error 27."</string>
     <string name="clh_callFailed_invalid_number_format_txt" msgid="6987646655639655370">"Formato de número no válido (dirección incompleta)"</string>
-    <string name="clh_callFailed_facility_rejected_txt" msgid="4539787567476563415">"Facilidad rechazada"</string>
-    <string name="clh_callFailed_response_to_STATUS_ENQUIRY_txt" msgid="178503536263624366">"Respuesta a INDAGACIÓN DE ESTADO"</string>
-    <string name="clh_callFailed_normal_unspecified_txt" msgid="2777574148560245427">"Normal, sin especificar"</string>
-    <string name="clh_callFailed_no_circuit_available_txt" msgid="2894749820848784700">"No hay circuito/canal disponible"</string>
-    <string name="clh_callFailed_network_out_of_order_txt" msgid="807472585030492179">"Red fuera de servicio"</string>
-    <string name="clh_callFailed_temporary_failure_txt" msgid="1985847623937655151">"Fallo temporal"</string>
-    <string name="clh_callFailed_switching_equipment_congestion_txt" msgid="465517139462928431">"Congestión en el equipo de conmutación"</string>
-    <string name="clh_callFailed_access_information_discarded_txt" msgid="132851305339579892">"Información de acceso descartada"</string>
-    <string name="clh_callFailed_requested_circuit_txt" msgid="2316345471851443847">"Circuito/canal solicitado no disponible"</string>
-    <string name="clh_callFailed_resources_unavailable_unspecified_txt" msgid="4460267429142724322">"Recursos no disponibles, sin especificar"</string>
-    <string name="clh_callFailed_quality_of_service_unavailable_txt" msgid="7315823047206338755">"Calidad de servicio no disponible"</string>
-    <string name="clh_callFailed_requested_facility_not_subscribed_txt" msgid="1688438372518949530">"Facilidad solicitada no abonada"</string>
-    <string name="clh_callFailed_incoming_calls_barred_within_the_CUG_txt" msgid="3922231620226043342">"Prohibición de llamadas entrantes dentro de un grupo cerrado de usuarios"</string>
-    <string name="clh_callFailed_bearer_capability_not_authorized_txt" msgid="6515594235334537340">"Capacidad portadora no autorizada"</string>
-    <string name="clh_callFailed_bearer_capability_not_presently_available_txt" msgid="8013567156449692135">"Capacidad portadora no disponible actualmente"</string>
-    <string name="clh_callFailed_service_or_option_not_available_unspecified_txt" msgid="8663374141880847414">"Servicio u opción no disponible, sin especificar"</string>
-    <string name="clh_callFailed_bearer_service_not_implemented_txt" msgid="2772484977847973583">"Capacidad portadora no implementada"</string>
-    <string name="clh_callFailed_ACM_equal_to_or_greater_than_ACMmax_txt" msgid="2192709279981159761">"El valor de ACM es igual o mayor que el de ACMmax"</string>
-    <string name="clh_callFailed_requested_facility_not_implemented_txt" msgid="406404292085779118">"Facilidad solicitada no implementada"</string>
-    <string name="clh_callFailed_only_restricted_digital_information_bearer_capability_is_available_txt" msgid="4817899794531157207">"Solo está disponible la capacidad portadora de información digital restringida"</string>
-    <string name="clh_callFailed_service_or_option_not_implemented_unspecified_txt" msgid="2968655784896862505">"Servicio u opción no implementado, sin especificar"</string>
-    <string name="clh_callFailed_invalid_transaction_identifier_value_txt" msgid="3843478518660918642">"Valor de referencia de llamada no válido"</string>
-    <string name="clh_callFailed_user_not_member_of_CUG_txt" msgid="8462852903153938988">"El usuario no es miembro del grupo cerrado de usuarios"</string>
-    <string name="clh_callFailed_incompatible_destination_txt" msgid="2580750652910253219">"Destino incompatible"</string>
-    <string name="clh_callFailed_invalid_transit_network_selection_txt" msgid="6589916900457111005">"Selección de red de tránsito no válida"</string>
-    <string name="clh_callFailed_semantically_incorrect_message_txt" msgid="2329284157442218683">"Mensaje inválido sin especificar"</string>
-    <string name="clh_callFailed_invalid_mandatory_information_txt" msgid="9081556111928912676">"Falta de elemento de información obligatorio"</string>
-    <string name="clh_callFailed_message_type_non_existent_or_not_implemented_txt" msgid="2641350895896546715">"Tipo de mensaje inexistente o no implementado"</string>
-    <string name="clh_callFailed_message_type_not_compatible_with_protocol_state_txt" msgid="6598180735494982466">"Mensaje incompatible con el estado de la llamada o tipo de mensaje inexistente o no implementado"</string>
-    <string name="clh_callFailed_information_element_non_existent_or_not_implemented_txt" msgid="4725610801664706983">"Elemento de información inexistente o no implementado"</string>
-    <string name="clh_callFailed_conditional_IE_error_txt" msgid="9140031076499566143">"Contenido de elemento de información no válido"</string>
-    <string name="clh_callFailed_message_not_compatible_with_protocol_state_txt" msgid="6586005128633024271">"Mensaje incompatible con el estado de la llamada"</string>
-    <string name="clh_callFailed_recovery_on_timer_expiry_txt" msgid="3680765722923600294">"Recuperación tras la expiración del plazo del temporizador"</string>
-    <string name="clh_callFailed_protocol_Error_unspecified_txt" msgid="8294907817156524790">"Error de protocolo, sin especificar"</string>
-    <string name="clh_callFailed_interworking_unspecified_txt" msgid="8838850798491763729">"Interfuncionamiento, no especificado"</string>
+    <string name="clh_callFailed_facility_rejected_txt" msgid="1028912823639389563">"No se ha podido completar la llamada. Código de error 29."</string>
+    <string name="clh_callFailed_response_to_STATUS_ENQUIRY_txt" msgid="1250833944238081212">"No se ha podido completar la llamada. Código de error 30."</string>
+    <string name="clh_callFailed_normal_unspecified_txt" msgid="8765640093649364786">"No se ha podido completar la llamada. Código de error 31."</string>
+    <string name="clh_callFailed_no_circuit_available_txt" msgid="6884477141997665736">"No se ha podido completar la llamada. Código de error 34."</string>
+    <string name="clh_callFailed_network_out_of_order_txt" msgid="76447023032000125">"No se ha podido completar la llamada. Código de error 38."</string>
+    <string name="clh_callFailed_temporary_failure_txt" msgid="5057716306945664356">"No se ha podido completar la llamada. Código de error 41."</string>
+    <string name="clh_callFailed_switching_equipment_congestion_txt" msgid="4958831706265227632">"No se ha podido completar la llamada. Código de error 42."</string>
+    <string name="clh_callFailed_access_information_discarded_txt" msgid="5033636666434831179">"No se ha podido completar la llamada. Código de error 43."</string>
+    <string name="clh_callFailed_requested_circuit_txt" msgid="3221429183862933558">"No se ha podido completar la llamada. Código de error 44."</string>
+    <string name="clh_callFailed_resources_unavailable_unspecified_txt" msgid="1385943395137055442">"No se ha podido completar la llamada. Código de error 47."</string>
+    <string name="clh_callFailed_quality_of_service_unavailable_txt" msgid="8464132603057397297">"No se ha podido completar la llamada. Código de error 49."</string>
+    <string name="clh_callFailed_requested_facility_not_subscribed_txt" msgid="3853815238079666882">"No se ha podido completar la llamada. Código de error 50."</string>
+    <string name="clh_callFailed_incoming_calls_barred_within_the_CUG_txt" msgid="6791665425652545510">"No se ha podido completar la llamada. Código de error 55."</string>
+    <string name="clh_callFailed_bearer_capability_not_authorized_txt" msgid="2975453855928450909">"No se ha podido completar la llamada. Código de error 57."</string>
+    <string name="clh_callFailed_bearer_capability_not_presently_available_txt" msgid="753763978405557873">"No se ha podido completar la llamada. Código de error 58."</string>
+    <string name="clh_callFailed_service_or_option_not_available_unspecified_txt" msgid="1714515856150546668">"No se ha podido completar la llamada. Código de error 63."</string>
+    <string name="clh_callFailed_bearer_service_not_implemented_txt" msgid="5433179845809692163">"No se ha podido completar la llamada. Código de error 65."</string>
+    <string name="clh_callFailed_ACM_equal_to_or_greater_than_ACMmax_txt" msgid="4339523227014428123">"No se ha podido completar la llamada. Código de error 68."</string>
+    <string name="clh_callFailed_requested_facility_not_implemented_txt" msgid="5217500914101821728">"No se ha podido completar la llamada. Código de error 69."</string>
+    <string name="clh_callFailed_only_restricted_digital_information_bearer_capability_is_available_txt" msgid="2423146296631060723">"No se ha podido completar la llamada. Código de error 70."</string>
+    <string name="clh_callFailed_service_or_option_not_implemented_unspecified_txt" msgid="873208782556277597">"No se ha podido completar la llamada. Código de error 79."</string>
+    <string name="clh_callFailed_invalid_transaction_identifier_value_txt" msgid="3926779129494281620">"No se ha podido completar la llamada. Código de error 81."</string>
+    <string name="clh_callFailed_user_not_member_of_CUG_txt" msgid="2517559636224367413">"No se ha podido completar la llamada. Código de error 87."</string>
+    <string name="clh_callFailed_incompatible_destination_txt" msgid="7994154962189949306">"No se ha podido completar la llamada. Código de error 88."</string>
+    <string name="clh_callFailed_invalid_transit_network_selection_txt" msgid="5847046471813330674">"No se ha podido completar la llamada. Código de error 91."</string>
+    <string name="clh_callFailed_semantically_incorrect_message_txt" msgid="5419940790658960361">"No se ha podido completar la llamada. Código de error 95."</string>
+    <string name="clh_callFailed_invalid_mandatory_information_txt" msgid="3350178645665420102">"No se ha podido completar la llamada. Código de error 96."</string>
+    <string name="clh_callFailed_message_type_non_existent_or_not_implemented_txt" msgid="7080310506268713895">"No se ha podido completar la llamada. Código de error 97."</string>
+    <string name="clh_callFailed_message_type_not_compatible_with_protocol_state_txt" msgid="5251558113020693277">"No se ha podido completar la llamada. Código de error 98."</string>
+    <string name="clh_callFailed_information_element_non_existent_or_not_implemented_txt" msgid="1643642065908165846">"No se ha podido completar la llamada. Código de error 99."</string>
+    <string name="clh_callFailed_conditional_IE_error_txt" msgid="1622467860490603665">"No se ha podido completar la llamada. Código de error 100."</string>
+    <string name="clh_callFailed_message_not_compatible_with_protocol_state_txt" msgid="3776039646804248109">"No se ha podido completar la llamada. Código de error 101."</string>
+    <string name="clh_callFailed_recovery_on_timer_expiry_txt" msgid="4529313282997136028">"No se ha podido completar la llamada. Código de error 102."</string>
+    <string name="clh_callFailed_protocol_Error_unspecified_txt" msgid="4900075501687505296">"No se ha podido completar la llamada. Código de error 111."</string>
+    <string name="clh_callFailed_interworking_unspecified_txt" msgid="6701560054199411045">"No se ha podido completar la llamada. Código de error 127."</string>
     <string name="labelCallBarring" msgid="3452870940716226978">"Bloqueo de llamadas"</string>
     <string name="sum_call_barring_enabled" msgid="6804489690436703488">"Activado"</string>
     <string name="sum_call_barring_disabled" msgid="5900772179198857783">"Desactivado"</string>

@@ -18,7 +18,6 @@ package com.android.services.telephony;
 
 import android.os.Handler;
 import android.os.Message;
-
 import android.provider.Settings;
 import android.telephony.DisconnectCause;
 import android.telephony.PhoneNumberUtils;
@@ -26,9 +25,9 @@ import android.telephony.PhoneNumberUtils;
 import com.android.internal.telephony.Call;
 import com.android.internal.telephony.CallStateException;
 import com.android.internal.telephony.Connection;
-import com.android.internal.telephony.imsphone.ImsPhoneConnection;
 import com.android.internal.telephony.Phone;
 import com.android.phone.PhoneUtils;
+import com.android.internal.telephony.imsphone.ImsPhoneConnection;
 import com.android.phone.settings.SettingsConstants;
 
 import java.util.LinkedList;

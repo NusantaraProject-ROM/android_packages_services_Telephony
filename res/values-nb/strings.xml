@@ -501,6 +501,7 @@
     <string name="incall_error_cannot_add_call" msgid="8878159278947023326">"Kan ikke legge til anropet akkurat nå. Du kan prøve å ta kontakt ved å sende en melding."</string>
     <string name="incall_error_supp_service_unknown" msgid="655570339115407698">"Tjenesten støttes ikke"</string>
     <string name="incall_error_supp_service_switch" msgid="5237002176899962862">"Kan ikke bytte samtaler."</string>
+    <string name="incall_error_supp_service_resume" msgid="7147983409782027448">"Kan ikke gjenoppta anropet."</string>
     <string name="incall_error_supp_service_separate" msgid="7224393405134545246">"Kan ikke splitte opp samtale."</string>
     <string name="incall_error_supp_service_transfer" msgid="7235952238189391438">"Kan ikke overføre."</string>
     <string name="incall_error_supp_service_conference" msgid="2505727299596357312">"Kan ikke opprette telefonmøte."</string>
@@ -509,7 +510,15 @@
     <string name="incall_error_supp_service_hold" msgid="7967020511232222078">"Kan ikke sette samtaler på vent."</string>
     <string name="incall_error_wfc_only_no_wireless_network" msgid="1782466780452640089">"Koble til et trådløst nettverk for å ringe."</string>
     <string name="incall_error_promote_wfc" msgid="106510757624022064">"Slå på telefonanrop via Wi-Fi for å ringe."</string>
+    <string name="emergency_information_title" msgid="4380389555729227377">"Informasjon for nødstilfeller"</string>
     <string name="emergency_enable_radio_dialog_title" msgid="4627849966634578257">"Nødanrop"</string>
+    <string name="emergency_dialpad_title" msgid="6052294225467269233">"Bare nødanrop"</string>
+    <!-- no translation found for single_emergency_number_title (4959203129714396515) -->
+    <skip />
+    <!-- no translation found for numerous_emergency_numbers_title (754158099451343898) -->
+    <skip />
+    <!-- no translation found for emergency_call_shortcut_hint (6506167229097004348) -->
+    <skip />
     <string name="emergency_enable_radio_dialog_message" msgid="207613549344420291">"Slår på radio…"</string>
     <string name="emergency_enable_radio_dialog_retry" msgid="5960061579996526883">"Ingen tjeneste. Prøver på nytt …"</string>
     <string name="radio_off_during_emergency_call" msgid="2535800034010306830">"Du kan ikke slå på flymodus under nødsamtaler."</string>
@@ -601,6 +610,7 @@
     <string name="selectContact" msgid="781975788478987237">"velg kontakt"</string>
     <string name="not_voice_capable" msgid="2739898841461577811">"Taleanrop støttes ikke"</string>
     <string name="description_dial_button" msgid="7459705245418435351">"ring"</string>
+    <string name="description_dialpad_button" msgid="5220006811894230590">"vis talltastatur"</string>
     <string name="voicemail_visual_voicemail_switch_title" msgid="5012622186976275457">"Visuell talepostkasse"</string>
     <string name="voicemail_set_pin_dialog_title" msgid="2797924461029093837">"Angi PIN-kode"</string>
     <string name="voicemail_change_pin_dialog_title" msgid="6035421908626121564">"Bytt PIN-kode"</string>
@@ -651,58 +661,58 @@
     <string name="mobile_data_activate_button" msgid="3682400969184405446">"LEGG TIL DATA"</string>
     <string name="mobile_data_activate_cancel_button" msgid="1708022171547398765">"AVBRYT"</string>
     <string name="clh_card_title_call_ended_txt" msgid="4072101334811753823">"Samtalen ble avsluttet"</string>
-    <string name="clh_callFailed_powerOff_txt" msgid="3773036949107147708">"Radio av"</string>
-    <string name="clh_callFailed_simError_txt" msgid="757650590524277969">"Ikke noe SIM-kort eller feil på SIM-kort"</string>
+    <string name="clh_callFailed_powerOff_txt" msgid="1049579267090569308">"Flymodus er på"</string>
+    <string name="clh_callFailed_simError_txt" msgid="7273306159809203315">"Får ikke tilgang til SIM-kortet"</string>
     <string name="clh_incall_error_out_of_service_txt" msgid="3974373603657193827">"Mobilnettverket er ikke tilgjengelig"</string>
-    <string name="clh_callFailed_unassigned_number_txt" msgid="7635996793232604064">"Utildelt nummer"</string>
-    <string name="clh_callFailed_no_route_to_destination_txt" msgid="8561586745288855167">"Ingen rute til destinasjonen"</string>
-    <string name="clh_callFailed_channel_unacceptable_txt" msgid="8048626924246611459">"Kanalen er ikke akseptabel"</string>
-    <string name="clh_callFailed_operator_determined_barring_txt" msgid="6889705714244076823">"Operatørbestemt sperring"</string>
-    <string name="clh_callFailed_normal_call_clearing_txt" msgid="2810975267106345820">"Normal fjerning av anrop"</string>
+    <string name="clh_callFailed_unassigned_number_txt" msgid="4722164461846838251">"Det er noe galt med telefonnummeret du prøver å ringe. Feilkode: 1."</string>
+    <string name="clh_callFailed_no_route_to_destination_txt" msgid="2259464183880140671">"Kunne ikke ringe. Feilkode: 3."</string>
+    <string name="clh_callFailed_channel_unacceptable_txt" msgid="3159336281525222855">"Kunne ikke ringe. Feilkode: 6."</string>
+    <string name="clh_callFailed_operator_determined_barring_txt" msgid="1831977101604817389">"Kunne ikke ringe. Feilkode: 8."</string>
+    <string name="clh_callFailed_normal_call_clearing_txt" msgid="7369313431310446847">"Kunne ikke ringe. Feilkode: 16."</string>
     <string name="clh_callFailed_user_busy_txt" msgid="2736095995784746915">"Brukeren er opptatt"</string>
-    <string name="clh_callFailed_no_user_responding_txt" msgid="1421543095873040084">"Ingen bruker svarer"</string>
-    <string name="clh_callFailed_user_alerting_txt" msgid="6606245970376797447">"Brukervarsling – ikke noe svar"</string>
+    <string name="clh_callFailed_no_user_responding_txt" msgid="3675206502567252162">"Brukeren svarer ikke"</string>
+    <string name="clh_callFailed_user_alerting_txt" msgid="363445537769733281">"Kunne ikke ringe. Feilkode: 19."</string>
     <string name="clh_callFailed_call_rejected_txt" msgid="8001665478195793223">"Anropet ble avvist"</string>
     <string name="clh_callFailed_number_changed_txt" msgid="5127909898925154242">"Nummeret er endret"</string>
-    <string name="clh_callFailed_pre_emption_txt" msgid="6864702416751338567">"Prioritering"</string>
-    <string name="clh_callFailed_non_selected_user_clearing_txt" msgid="8725898326616836656">"Fjerning av brukere som ikke er valgt"</string>
-    <string name="clh_callFailed_destination_out_of_order_txt" msgid="6626355413556362437">"Destinasjonen fungerer ikke"</string>
+    <string name="clh_callFailed_pre_emption_txt" msgid="1100414016302714854">"Kunne ikke ringe. Feilkode: 25."</string>
+    <string name="clh_callFailed_non_selected_user_clearing_txt" msgid="6248192300127702626">"Kunne ikke ringe. Feilkode: 26."</string>
+    <string name="clh_callFailed_destination_out_of_order_txt" msgid="4879936907430554772">"Kunne ikke ringe. Feilkode: 27."</string>
     <string name="clh_callFailed_invalid_number_format_txt" msgid="6987646655639655370">"Ugyldig nummerformat (ufullstendig nummer)"</string>
-    <string name="clh_callFailed_facility_rejected_txt" msgid="4539787567476563415">"Fasiliteten ble avvist"</string>
-    <string name="clh_callFailed_response_to_STATUS_ENQUIRY_txt" msgid="178503536263624366">"Svar på STATUSFORESPØRSEL"</string>
-    <string name="clh_callFailed_normal_unspecified_txt" msgid="2777574148560245427">"Normal – uspesifisert"</string>
-    <string name="clh_callFailed_no_circuit_available_txt" msgid="2894749820848784700">"Ingen krets/kanal tilgjengelig"</string>
-    <string name="clh_callFailed_network_out_of_order_txt" msgid="807472585030492179">"Nettverket fungerer ikke"</string>
-    <string name="clh_callFailed_temporary_failure_txt" msgid="1985847623937655151">"Midlertidig feil"</string>
-    <string name="clh_callFailed_switching_equipment_congestion_txt" msgid="465517139462928431">"Høy pågang for koblingsutstyret"</string>
-    <string name="clh_callFailed_access_information_discarded_txt" msgid="132851305339579892">"Tilgangsinformasjonen ble forkastet"</string>
-    <string name="clh_callFailed_requested_circuit_txt" msgid="2316345471851443847">"Den forespurte kretsen/kanalen er ikke tilgjengelig"</string>
-    <string name="clh_callFailed_resources_unavailable_unspecified_txt" msgid="4460267429142724322">"Ressurser ikke tilgjengelige – uspesifisert"</string>
-    <string name="clh_callFailed_quality_of_service_unavailable_txt" msgid="7315823047206338755">"Tjenestekvalitet ikke tilgjengelig"</string>
-    <string name="clh_callFailed_requested_facility_not_subscribed_txt" msgid="1688438372518949530">"Den forespurte fasiliteten finnes ikke i abonnementet"</string>
-    <string name="clh_callFailed_incoming_calls_barred_within_the_CUG_txt" msgid="3922231620226043342">"Innkommende anrop er sperret i CUG"</string>
-    <string name="clh_callFailed_bearer_capability_not_authorized_txt" msgid="6515594235334537340">"Bærerkapabilitet er ikke autorisert"</string>
-    <string name="clh_callFailed_bearer_capability_not_presently_available_txt" msgid="8013567156449692135">"Bærerkapabilitet er ikke tilgjengelig nå"</string>
-    <string name="clh_callFailed_service_or_option_not_available_unspecified_txt" msgid="8663374141880847414">"Tjenesten eller alternativet er ikke tilgjengelig – uspesifisert"</string>
-    <string name="clh_callFailed_bearer_service_not_implemented_txt" msgid="2772484977847973583">"Bærertjenesten er ikke implementert"</string>
-    <string name="clh_callFailed_ACM_equal_to_or_greater_than_ACMmax_txt" msgid="2192709279981159761">"ACM er lik eller større enn ACMmax"</string>
-    <string name="clh_callFailed_requested_facility_not_implemented_txt" msgid="406404292085779118">"Den forespurte fasiliteten er ikke implementert"</string>
-    <string name="clh_callFailed_only_restricted_digital_information_bearer_capability_is_available_txt" msgid="4817899794531157207">"Kun begrenset digital informasjon for bærerkapabilitet er tilgjengelig"</string>
-    <string name="clh_callFailed_service_or_option_not_implemented_unspecified_txt" msgid="2968655784896862505">"Tjenesten eller alternativet er ikke implementert – uspesifisert"</string>
-    <string name="clh_callFailed_invalid_transaction_identifier_value_txt" msgid="3843478518660918642">"Ugyldig verdi for transaksjonsidentifikator"</string>
-    <string name="clh_callFailed_user_not_member_of_CUG_txt" msgid="8462852903153938988">"Brukeren er ikke medlem av CUG"</string>
-    <string name="clh_callFailed_incompatible_destination_txt" msgid="2580750652910253219">"Inkompatibel destinasjon"</string>
-    <string name="clh_callFailed_invalid_transit_network_selection_txt" msgid="6589916900457111005">"Ugyldig valg av overføringsnettverk"</string>
-    <string name="clh_callFailed_semantically_incorrect_message_txt" msgid="2329284157442218683">"Semantisk ukorrekt melding"</string>
-    <string name="clh_callFailed_invalid_mandatory_information_txt" msgid="9081556111928912676">"Ugyldig obligatorisk informasjon"</string>
-    <string name="clh_callFailed_message_type_non_existent_or_not_implemented_txt" msgid="2641350895896546715">"Meldingstypen finnes ikke eller er ikke implementert"</string>
-    <string name="clh_callFailed_message_type_not_compatible_with_protocol_state_txt" msgid="6598180735494982466">"Meldingstypen er ikke kompatibel med protokolltilstanden"</string>
-    <string name="clh_callFailed_information_element_non_existent_or_not_implemented_txt" msgid="4725610801664706983">"Informasjonselementet finnes ikke eller er ikke implementert"</string>
-    <string name="clh_callFailed_conditional_IE_error_txt" msgid="9140031076499566143">"Betinget IE-feil"</string>
-    <string name="clh_callFailed_message_not_compatible_with_protocol_state_txt" msgid="6586005128633024271">"Meldingen er ikke kompatibel med protokolltilstanden"</string>
-    <string name="clh_callFailed_recovery_on_timer_expiry_txt" msgid="3680765722923600294">"Gjenoppretting ved tidsavbrudd"</string>
-    <string name="clh_callFailed_protocol_Error_unspecified_txt" msgid="8294907817156524790">"Protokollfeil – uspesifisert"</string>
-    <string name="clh_callFailed_interworking_unspecified_txt" msgid="8838850798491763729">"Interfunksjon – uspesifisert"</string>
+    <string name="clh_callFailed_facility_rejected_txt" msgid="1028912823639389563">"Kunne ikke ringe. Feilkode: 29."</string>
+    <string name="clh_callFailed_response_to_STATUS_ENQUIRY_txt" msgid="1250833944238081212">"Kunne ikke ringe. Feilkode: 30."</string>
+    <string name="clh_callFailed_normal_unspecified_txt" msgid="8765640093649364786">"Kunne ikke ringe. Feilkode: 31."</string>
+    <string name="clh_callFailed_no_circuit_available_txt" msgid="6884477141997665736">"Kunne ikke ringe. Feilkode: 34."</string>
+    <string name="clh_callFailed_network_out_of_order_txt" msgid="76447023032000125">"Kunne ikke ringe. Feilkode: 38."</string>
+    <string name="clh_callFailed_temporary_failure_txt" msgid="5057716306945664356">"Kunne ikke ringe. Feilkode: 41."</string>
+    <string name="clh_callFailed_switching_equipment_congestion_txt" msgid="4958831706265227632">"Kunne ikke ringe. Feilkode: 42."</string>
+    <string name="clh_callFailed_access_information_discarded_txt" msgid="5033636666434831179">"Kunne ikke ringe. Feilkode: 43."</string>
+    <string name="clh_callFailed_requested_circuit_txt" msgid="3221429183862933558">"Kunne ikke ringe. Feilkode: 44."</string>
+    <string name="clh_callFailed_resources_unavailable_unspecified_txt" msgid="1385943395137055442">"Kunne ikke ringe. Feilkode: 47."</string>
+    <string name="clh_callFailed_quality_of_service_unavailable_txt" msgid="8464132603057397297">"Kunne ikke ringe. Feilkode: 49."</string>
+    <string name="clh_callFailed_requested_facility_not_subscribed_txt" msgid="3853815238079666882">"Kunne ikke ringe. Feilkode: 50."</string>
+    <string name="clh_callFailed_incoming_calls_barred_within_the_CUG_txt" msgid="6791665425652545510">"Kunne ikke ringe. Feilkode: 55."</string>
+    <string name="clh_callFailed_bearer_capability_not_authorized_txt" msgid="2975453855928450909">"Kunne ikke ringe. Feilkode: 57."</string>
+    <string name="clh_callFailed_bearer_capability_not_presently_available_txt" msgid="753763978405557873">"Kunne ikke ringe. Feilkode: 58."</string>
+    <string name="clh_callFailed_service_or_option_not_available_unspecified_txt" msgid="1714515856150546668">"Kunne ikke ringe. Feilkode: 63."</string>
+    <string name="clh_callFailed_bearer_service_not_implemented_txt" msgid="5433179845809692163">"Kunne ikke ringe. Feilkode: 65."</string>
+    <string name="clh_callFailed_ACM_equal_to_or_greater_than_ACMmax_txt" msgid="4339523227014428123">"Kunne ikke ringe. Feilkode: 68."</string>
+    <string name="clh_callFailed_requested_facility_not_implemented_txt" msgid="5217500914101821728">"Kunne ikke ringe. Feilkode: 69."</string>
+    <string name="clh_callFailed_only_restricted_digital_information_bearer_capability_is_available_txt" msgid="2423146296631060723">"Kunne ikke ringe. Feilkode: 70."</string>
+    <string name="clh_callFailed_service_or_option_not_implemented_unspecified_txt" msgid="873208782556277597">"Kunne ikke ringe. Feilkode: 79."</string>
+    <string name="clh_callFailed_invalid_transaction_identifier_value_txt" msgid="3926779129494281620">"Kunne ikke ringe. Feilkode: 81."</string>
+    <string name="clh_callFailed_user_not_member_of_CUG_txt" msgid="2517559636224367413">"Kunne ikke ringe. Feilkode: 87."</string>
+    <string name="clh_callFailed_incompatible_destination_txt" msgid="7994154962189949306">"Kunne ikke ringe. Feilkode: 88."</string>
+    <string name="clh_callFailed_invalid_transit_network_selection_txt" msgid="5847046471813330674">"Kunne ikke ringe. Feilkode: 91."</string>
+    <string name="clh_callFailed_semantically_incorrect_message_txt" msgid="5419940790658960361">"Kunne ikke ringe. Feilkode: 95."</string>
+    <string name="clh_callFailed_invalid_mandatory_information_txt" msgid="3350178645665420102">"Kunne ikke ringe. Feilkode: 96."</string>
+    <string name="clh_callFailed_message_type_non_existent_or_not_implemented_txt" msgid="7080310506268713895">"Kunne ikke ringe. Feilkode: 97."</string>
+    <string name="clh_callFailed_message_type_not_compatible_with_protocol_state_txt" msgid="5251558113020693277">"Kunne ikke ringe. Feilkode: 98."</string>
+    <string name="clh_callFailed_information_element_non_existent_or_not_implemented_txt" msgid="1643642065908165846">"Kunne ikke ringe. Feilkode: 99."</string>
+    <string name="clh_callFailed_conditional_IE_error_txt" msgid="1622467860490603665">"Kunne ikke ringe. Feilkode: 100."</string>
+    <string name="clh_callFailed_message_not_compatible_with_protocol_state_txt" msgid="3776039646804248109">"Kunne ikke ringe. Feilkode: 101."</string>
+    <string name="clh_callFailed_recovery_on_timer_expiry_txt" msgid="4529313282997136028">"Kunne ikke ringe. Feilkode: 102."</string>
+    <string name="clh_callFailed_protocol_Error_unspecified_txt" msgid="4900075501687505296">"Kunne ikke ringe. Feilkode: 111."</string>
+    <string name="clh_callFailed_interworking_unspecified_txt" msgid="6701560054199411045">"Kunne ikke ringe. Feilkode: 127."</string>
     <string name="labelCallBarring" msgid="3452870940716226978">"Anropsblokkering"</string>
     <string name="sum_call_barring_enabled" msgid="6804489690436703488">"På"</string>
     <string name="sum_call_barring_disabled" msgid="5900772179198857783">"Av"</string>

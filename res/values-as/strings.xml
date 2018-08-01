@@ -495,6 +495,7 @@
     <string name="incall_error_cannot_add_call" msgid="8878159278947023326">"এই মুহূৰ্তত কল যোগ কৰিব নোৱাৰি। আপুনি এটা বাৰ্তা পঠাই যোগাযোগ কৰিবলৈ চেষ্টা কৰি চাব পাৰে।"</string>
     <string name="incall_error_supp_service_unknown" msgid="655570339115407698">"সেৱা ব্যৱহাৰ কৰিব নোৱাৰি"</string>
     <string name="incall_error_supp_service_switch" msgid="5237002176899962862">"কল সলনি কৰিব নোৱাৰি।"</string>
+    <string name="incall_error_supp_service_resume" msgid="7147983409782027448">"কল অব্য়াহত ৰাখিব নোৱাৰি।"</string>
     <string name="incall_error_supp_service_separate" msgid="7224393405134545246">"কল পৃথক কৰিব নোৱাৰি।"</string>
     <string name="incall_error_supp_service_transfer" msgid="7235952238189391438">"স্থানান্তৰ কৰিব নোৱাৰি।"</string>
     <string name="incall_error_supp_service_conference" msgid="2505727299596357312">"কল কনফাৰেন্স কৰিব পৰা নাই।"</string>
@@ -503,7 +504,15 @@
     <string name="incall_error_supp_service_hold" msgid="7967020511232222078">"কলসমূহ হ\'ল্ডত ৰাখিব নোৱাৰি।"</string>
     <string name="incall_error_wfc_only_no_wireless_network" msgid="1782466780452640089">"কল কৰিবলৈ কোনো বেতাঁৰ নেটৱৰ্কৰ সৈতে সংযোগ কৰক।"</string>
     <string name="incall_error_promote_wfc" msgid="106510757624022064">"কল কৰিবৰ কাৰণে ৱাই-ফাই কলিং সুবিধা সক্ষম কৰক।"</string>
+    <string name="emergency_information_title" msgid="4380389555729227377">"জৰুৰীকালীন তথ্য"</string>
     <string name="emergency_enable_radio_dialog_title" msgid="4627849966634578257">"জৰুৰীকালীন কল"</string>
+    <string name="emergency_dialpad_title" msgid="6052294225467269233">"জৰুৰীকালীন কল মাত্ৰ"</string>
+    <!-- no translation found for single_emergency_number_title (4959203129714396515) -->
+    <skip />
+    <!-- no translation found for numerous_emergency_numbers_title (754158099451343898) -->
+    <skip />
+    <!-- no translation found for emergency_call_shortcut_hint (6506167229097004348) -->
+    <skip />
     <string name="emergency_enable_radio_dialog_message" msgid="207613549344420291">"ৰেডিঅ\' অন কৰা হৈছে…"</string>
     <string name="emergency_enable_radio_dialog_retry" msgid="5960061579996526883">"কোনো সেৱা নাই। পুনৰ চেষ্টা কৰক…"</string>
     <string name="radio_off_during_emergency_call" msgid="2535800034010306830">"জৰুৰীকালীন কল চলি থাকোঁতে এয়াৰপ্লেইন ম\'ডত প্ৰৱেশ কৰিব নোৱাৰি।"</string>
@@ -595,6 +604,7 @@
     <string name="selectContact" msgid="781975788478987237">"সম্পৰ্ক বাছনি কৰক"</string>
     <string name="not_voice_capable" msgid="2739898841461577811">"ভইচ কলিং কৰাৰ সুবিধা নাই"</string>
     <string name="description_dial_button" msgid="7459705245418435351">"ডায়েল"</string>
+    <string name="description_dialpad_button" msgid="5220006811894230590">"ডায়েলপেড দেখুৱাওক"</string>
     <string name="voicemail_visual_voicemail_switch_title" msgid="5012622186976275457">"দৃশ্যগত ভইচমেইল"</string>
     <string name="voicemail_set_pin_dialog_title" msgid="2797924461029093837">"পিন ছেট কৰক"</string>
     <string name="voicemail_change_pin_dialog_title" msgid="6035421908626121564">"পিন সলনি কৰক"</string>
@@ -645,58 +655,58 @@
     <string name="mobile_data_activate_button" msgid="3682400969184405446">"ডেটা যোগ কৰক"</string>
     <string name="mobile_data_activate_cancel_button" msgid="1708022171547398765">"বাতিল কৰক"</string>
     <string name="clh_card_title_call_ended_txt" msgid="4072101334811753823">"কল শেষ হ\'ল"</string>
-    <string name="clh_callFailed_powerOff_txt" msgid="3773036949107147708">"ৰেডিঅ’ অফ হৈ আছে"</string>
-    <string name="clh_callFailed_simError_txt" msgid="757650590524277969">"কোনো ছিম কাৰ্ড নাই বা ছিম কাৰ্ডৰ আসোঁৱাহ"</string>
+    <string name="clh_callFailed_powerOff_txt" msgid="1049579267090569308">"এয়াৰপ্লেইন ম\'ড অন হৈ আছে"</string>
+    <string name="clh_callFailed_simError_txt" msgid="7273306159809203315">"ছিম কাৰ্ডত প্ৰৱেশ কৰিব পৰা নাই"</string>
     <string name="clh_incall_error_out_of_service_txt" msgid="3974373603657193827">"ম\'বাইল নেটৱৰ্ক উপলব্ধ নহয়"</string>
-    <string name="clh_callFailed_unassigned_number_txt" msgid="7635996793232604064">"প্ৰদান কৰা নোহোৱা (আবণ্টিত নোহোৱা) নম্বৰ"</string>
-    <string name="clh_callFailed_no_route_to_destination_txt" msgid="8561586745288855167">"লক্ষ্যস্থানলৈ কোনো ৰাষ্টা নাই"</string>
-    <string name="clh_callFailed_channel_unacceptable_txt" msgid="8048626924246611459">"চ্চেনেল গ্ৰহণযোগ্য নহয়"</string>
-    <string name="clh_callFailed_operator_determined_barring_txt" msgid="6889705714244076823">"বাহকৰ দ্বাৰা নিৰ্দিষ্ট কৰা প্ৰতিবন্ধকতা"</string>
-    <string name="clh_callFailed_normal_call_clearing_txt" msgid="2810975267106345820">"সাধাৰণ কল ক্লিয়েৰিং"</string>
+    <string name="clh_callFailed_unassigned_number_txt" msgid="4722164461846838251">"আপুনি ডায়েল কৰিব খোজা ফ\'ন নম্বৰত আসোঁৱাহ আছে। আসোঁৱাহ ক\'ড ১।"</string>
+    <string name="clh_callFailed_no_route_to_destination_txt" msgid="2259464183880140671">"কলটো সম্পূৰ্ণ কৰিব পৰা নগ\'ল। আসোঁৱাহ ক\'ড ৩।"</string>
+    <string name="clh_callFailed_channel_unacceptable_txt" msgid="3159336281525222855">"কলটো সম্পূৰ্ণ কৰিব পৰা নগ\'ল। আসোঁৱাহ ক\'ড ৬।"</string>
+    <string name="clh_callFailed_operator_determined_barring_txt" msgid="1831977101604817389">"কলটো সম্পূৰ্ণ কৰিব পৰা নগ\'ল। আসোঁৱাহ ক\'ড ৮।"</string>
+    <string name="clh_callFailed_normal_call_clearing_txt" msgid="7369313431310446847">"কলটো সম্পূৰ্ণ কৰিব পৰা নগ\'ল। আসোঁৱাহ ক\'ড ১৬।"</string>
     <string name="clh_callFailed_user_busy_txt" msgid="2736095995784746915">"ব্যৱহাৰকাৰী ব্যস্ত হৈ আছে"</string>
-    <string name="clh_callFailed_no_user_responding_txt" msgid="1421543095873040084">"ব্যৱহাৰকাৰীৰ ফাল পৰা কোনো সঁহাৰি নাই"</string>
-    <string name="clh_callFailed_user_alerting_txt" msgid="6606245970376797447">"ব্যৱহাৰকাৰীক আগজাননী দিয়া হৈছে, কোনো উত্তৰ নাই"</string>
+    <string name="clh_callFailed_no_user_responding_txt" msgid="3675206502567252162">"ব্যৱহাৰকাৰীয়ে কোনো সঁহাৰি দিয়া নাই"</string>
+    <string name="clh_callFailed_user_alerting_txt" msgid="363445537769733281">"কলটো সম্পূৰ্ণ কৰিব পৰা নগ\'ল। আসোঁৱাহ ক\'ড ১৯।"</string>
     <string name="clh_callFailed_call_rejected_txt" msgid="8001665478195793223">"কল নাকচ কৰা হৈছে"</string>
     <string name="clh_callFailed_number_changed_txt" msgid="5127909898925154242">"নম্বৰ সলনি হৈছে"</string>
-    <string name="clh_callFailed_pre_emption_txt" msgid="6864702416751338567">"প্ৰি-এম্পশ্বন"</string>
-    <string name="clh_callFailed_non_selected_user_clearing_txt" msgid="8725898326616836656">"ব্যৱহাৰকাৰীৰ দ্বাৰা বাছনি নকৰা ক্লিয়েৰিং"</string>
-    <string name="clh_callFailed_destination_out_of_order_txt" msgid="6626355413556362437">"লক্ষ্যস্থান বিশৃংখলিত হৈ আছে"</string>
+    <string name="clh_callFailed_pre_emption_txt" msgid="1100414016302714854">"কলটো সম্পূৰ্ণ কৰিব পৰা নগ\'ল। আসোঁৱাহ ক\'ড ২৫।"</string>
+    <string name="clh_callFailed_non_selected_user_clearing_txt" msgid="6248192300127702626">"কলটো সম্পূৰ্ণ কৰিব পৰা নগ\'ল। আসোঁৱাহ ক\'ড ২৬।"</string>
+    <string name="clh_callFailed_destination_out_of_order_txt" msgid="4879936907430554772">"কলটো সম্পূৰ্ণ কৰিব পৰা নগ\'ল। আসোঁৱাহ ক\'ড ২৭।"</string>
     <string name="clh_callFailed_invalid_number_format_txt" msgid="6987646655639655370">"অমান্য নম্বৰ ফৰমেট (অসম্পূৰ্ণ নম্বৰ)"</string>
-    <string name="clh_callFailed_facility_rejected_txt" msgid="4539787567476563415">"ফেচিলিটি নাকচ কৰা হৈছে"</string>
-    <string name="clh_callFailed_response_to_STATUS_ENQUIRY_txt" msgid="178503536263624366">"স্থিতিৰ বিষয়ে অনুসন্ধানৰ প্ৰতি সঁহাৰি"</string>
-    <string name="clh_callFailed_normal_unspecified_txt" msgid="2777574148560245427">"সাধাৰণ, অনিৰ্দিষ্ট"</string>
-    <string name="clh_callFailed_no_circuit_available_txt" msgid="2894749820848784700">"কোনো আৱৰ্তনী/চ্চেনেল উপলব্ধ নহয়"</string>
-    <string name="clh_callFailed_network_out_of_order_txt" msgid="807472585030492179">"নেটৱৰ্ক বিকল"</string>
-    <string name="clh_callFailed_temporary_failure_txt" msgid="1985847623937655151">"সাময়িক বিফলতা"</string>
-    <string name="clh_callFailed_switching_equipment_congestion_txt" msgid="465517139462928431">"ছুইচ্ছিং ইকুইপমেণ্ট যঁত"</string>
-    <string name="clh_callFailed_access_information_discarded_txt" msgid="132851305339579892">"প্ৰৱেশৰ তথ্য পৰিত্যাগ কৰা হ\'ল"</string>
-    <string name="clh_callFailed_requested_circuit_txt" msgid="2316345471851443847">"অনুৰোধ কৰা আৱৰ্তনী/চ্চেনেল উপলব্ধ নহয়"</string>
-    <string name="clh_callFailed_resources_unavailable_unspecified_txt" msgid="4460267429142724322">"সম্পদ উপলব্ধ নহয়, অনিৰ্দিষ্ট"</string>
-    <string name="clh_callFailed_quality_of_service_unavailable_txt" msgid="7315823047206338755">"সেৱাৰ গুণগত মান উপলব্ধ নহয়"</string>
-    <string name="clh_callFailed_requested_facility_not_subscribed_txt" msgid="1688438372518949530">"অনুৰোধ কৰা ফেচিলিটিৰ সদস্যভুক্ত হোৱা নাই"</string>
-    <string name="clh_callFailed_incoming_calls_barred_within_the_CUG_txt" msgid="3922231620226043342">"CUGৰ অন্তৰ্গত অন্তৰ্গামী কল প্ৰতিবন্ধিত কৰা হৈছে"</string>
-    <string name="clh_callFailed_bearer_capability_not_authorized_txt" msgid="6515594235334537340">"বহনকাৰীৰ সক্ষমতা প্ৰাধিকৃত নহয়"</string>
-    <string name="clh_callFailed_bearer_capability_not_presently_available_txt" msgid="8013567156449692135">"বহনকাৰীৰ সক্ষমতা বৰ্তমান উপলব্ধ নহয়"</string>
-    <string name="clh_callFailed_service_or_option_not_available_unspecified_txt" msgid="8663374141880847414">"সেৱা বা বিকল্প উপলব্ধ নহয়, অনিৰ্দিষ্ট"</string>
-    <string name="clh_callFailed_bearer_service_not_implemented_txt" msgid="2772484977847973583">"বহনকাৰীৰ সেৱা কাৰ্যকৰী কৰা হোৱা নাই"</string>
-    <string name="clh_callFailed_ACM_equal_to_or_greater_than_ACMmax_txt" msgid="2192709279981159761">"ACM ACMmaxৰ সমান বা বেছি"</string>
-    <string name="clh_callFailed_requested_facility_not_implemented_txt" msgid="406404292085779118">"অনুৰোধ কৰা ফেচিলিটি কাৰ্যকৰী কৰা হোৱা নাই"</string>
-    <string name="clh_callFailed_only_restricted_digital_information_bearer_capability_is_available_txt" msgid="4817899794531157207">"কেৱল সীমিত ডিজিটেল তথ্য বহনকাৰীৰ সক্ষমতা উপলব্ধ"</string>
-    <string name="clh_callFailed_service_or_option_not_implemented_unspecified_txt" msgid="2968655784896862505">"সেৱা বা বিকল্প কাৰ্যকৰী কৰা হোৱা নাই, অনিৰ্দিষ্ট"</string>
-    <string name="clh_callFailed_invalid_transaction_identifier_value_txt" msgid="3843478518660918642">"অমান্য ট্ৰানজেকশ্বন চিনাক্তকৰণ মান"</string>
-    <string name="clh_callFailed_user_not_member_of_CUG_txt" msgid="8462852903153938988">"ব্যৱহাৰকাৰী CUGৰ সদস্য নহয়"</string>
-    <string name="clh_callFailed_incompatible_destination_txt" msgid="2580750652910253219">"লক্ষ্যস্থান খাপ খোৱা নহয়"</string>
-    <string name="clh_callFailed_invalid_transit_network_selection_txt" msgid="6589916900457111005">"অমান্য ট্ৰানজিত নেটৱৰ্কৰ বাছনি"</string>
-    <string name="clh_callFailed_semantically_incorrect_message_txt" msgid="2329284157442218683">"ভুল অৰ্থৰ বাৰ্তা"</string>
-    <string name="clh_callFailed_invalid_mandatory_information_txt" msgid="9081556111928912676">"অমান্য বাধ্যতামূলক তথ্য"</string>
-    <string name="clh_callFailed_message_type_non_existent_or_not_implemented_txt" msgid="2641350895896546715">"বাৰ্তাৰ প্ৰকাৰ অস্তিত্বহীন বা কাৰ্যকৰী কৰা হোৱা নাই"</string>
-    <string name="clh_callFailed_message_type_not_compatible_with_protocol_state_txt" msgid="6598180735494982466">"প্ৰ\'ট\'কলৰ স্থিতিৰ সৈতে বাৰ্তাৰ প্ৰকাৰ খাপ নাই খোৱা"</string>
-    <string name="clh_callFailed_information_element_non_existent_or_not_implemented_txt" msgid="4725610801664706983">"তথ্য উপাদান অস্তিত্বহীন বা কাৰ্যকৰী কৰা হোৱা নাই"</string>
-    <string name="clh_callFailed_conditional_IE_error_txt" msgid="9140031076499566143">"চৰ্তসাপেক্ষ IE আসোঁৱাহ"</string>
-    <string name="clh_callFailed_message_not_compatible_with_protocol_state_txt" msgid="6586005128633024271">"প্ৰ\'ট\'কলৰ স্থিতিৰ সৈতে বাৰ্তা খাপ নাই খোৱা"</string>
-    <string name="clh_callFailed_recovery_on_timer_expiry_txt" msgid="3680765722923600294">"ৰিক\'ভাৰী অন টাইমাৰ উকলিছে"</string>
-    <string name="clh_callFailed_protocol_Error_unspecified_txt" msgid="8294907817156524790">"প্ৰ\'ট\'কলৰ আসোঁৱাহ, অনিৰ্দিষ্ট"</string>
-    <string name="clh_callFailed_interworking_unspecified_txt" msgid="8838850798491763729">"ইণ্টাৰৱৰ্কিং, অনিৰ্দিষ্ট"</string>
+    <string name="clh_callFailed_facility_rejected_txt" msgid="1028912823639389563">"কলটো সম্পূৰ্ণ কৰিব পৰা নগ\'ল। আসোঁৱাহ ক\'ড ২৯।"</string>
+    <string name="clh_callFailed_response_to_STATUS_ENQUIRY_txt" msgid="1250833944238081212">"কলটো সম্পূৰ্ণ কৰিব পৰা নগ\'ল। আসোঁৱাহ ক\'ড ৩০।"</string>
+    <string name="clh_callFailed_normal_unspecified_txt" msgid="8765640093649364786">"কলটো সম্পূৰ্ণ কৰিব পৰা নগ\'ল। আসোঁৱাহ ক\'ড ৩১।"</string>
+    <string name="clh_callFailed_no_circuit_available_txt" msgid="6884477141997665736">"কলটো সম্পূৰ্ণ কৰিব পৰা নগ\'ল। আসোঁৱাহ ক\'ড ৩৪।"</string>
+    <string name="clh_callFailed_network_out_of_order_txt" msgid="76447023032000125">"কলটো সম্পূৰ্ণ কৰিব পৰা নগ\'ল। আসোঁৱাহ ক\'ড ৩৮।"</string>
+    <string name="clh_callFailed_temporary_failure_txt" msgid="5057716306945664356">"কলটো সম্পূৰ্ণ কৰিব পৰা নগ\'ল। আসোঁৱাহ ক\'ড ৪১।"</string>
+    <string name="clh_callFailed_switching_equipment_congestion_txt" msgid="4958831706265227632">"কলটো সম্পূৰ্ণ কৰিব পৰা নগ\'ল। আসোঁৱাহ ক\'ড ৪২।"</string>
+    <string name="clh_callFailed_access_information_discarded_txt" msgid="5033636666434831179">"কলটো সম্পূৰ্ণ কৰিব পৰা নগ\'ল। আসোঁৱাহ ক\'ড ৪৩।"</string>
+    <string name="clh_callFailed_requested_circuit_txt" msgid="3221429183862933558">"কলটো সম্পূৰ্ণ কৰিব পৰা নগ\'ল। আসোঁৱাহ ক\'ড ৪৪।"</string>
+    <string name="clh_callFailed_resources_unavailable_unspecified_txt" msgid="1385943395137055442">"কলটো সম্পূৰ্ণ কৰিব পৰা নগ\'ল। আসোঁৱাহ ক\'ড ৪৭।"</string>
+    <string name="clh_callFailed_quality_of_service_unavailable_txt" msgid="8464132603057397297">"কলটো সম্পূৰ্ণ কৰিব পৰা নগ\'ল। আসোঁৱাহ ক\'ড ৪৯।"</string>
+    <string name="clh_callFailed_requested_facility_not_subscribed_txt" msgid="3853815238079666882">"কলটো সম্পূৰ্ণ কৰিব পৰা নগ\'ল। আসোঁৱাহ ক\'ড ৫০।"</string>
+    <string name="clh_callFailed_incoming_calls_barred_within_the_CUG_txt" msgid="6791665425652545510">"কলটো সম্পূৰ্ণ কৰিব পৰা নগ\'ল। আসোঁৱাহ ক\'ড ৫৫।"</string>
+    <string name="clh_callFailed_bearer_capability_not_authorized_txt" msgid="2975453855928450909">"কলটো সম্পূৰ্ণ কৰিব পৰা নগ\'ল। আসোঁৱাহ ক\'ড ৫৭।"</string>
+    <string name="clh_callFailed_bearer_capability_not_presently_available_txt" msgid="753763978405557873">"কলটো সম্পূৰ্ণ কৰিব পৰা নগ\'ল। আসোঁৱাহ ক\'ড ৫৮।"</string>
+    <string name="clh_callFailed_service_or_option_not_available_unspecified_txt" msgid="1714515856150546668">"কলটো সম্পূৰ্ণ কৰিব পৰা নগ\'ল। আসোঁৱাহ ক\'ড ৬৩।"</string>
+    <string name="clh_callFailed_bearer_service_not_implemented_txt" msgid="5433179845809692163">"কলটো সম্পূৰ্ণ কৰিব পৰা নগ\'ল। আসোঁৱাহ ক\'ড ৬৫।"</string>
+    <string name="clh_callFailed_ACM_equal_to_or_greater_than_ACMmax_txt" msgid="4339523227014428123">"কলটো সম্পূৰ্ণ কৰিব পৰা নগ\'ল। আসোঁৱাহ ক\'ড ৬৮।"</string>
+    <string name="clh_callFailed_requested_facility_not_implemented_txt" msgid="5217500914101821728">"কলটো সম্পূৰ্ণ কৰিব পৰা নগ\'ল। আসোঁৱাহ ক\'ড ৬৯।"</string>
+    <string name="clh_callFailed_only_restricted_digital_information_bearer_capability_is_available_txt" msgid="2423146296631060723">"কলটো সম্পূৰ্ণ কৰিব পৰা নগ\'ল। আসোঁৱাহ ক\'ড ৭০।"</string>
+    <string name="clh_callFailed_service_or_option_not_implemented_unspecified_txt" msgid="873208782556277597">"কলটো সম্পূৰ্ণ কৰিব পৰা নগ\'ল। আসোঁৱাহ ক\'ড ৭৯।"</string>
+    <string name="clh_callFailed_invalid_transaction_identifier_value_txt" msgid="3926779129494281620">"কলটো সম্পূৰ্ণ কৰিব পৰা নগ\'ল। আসোঁৱাহ ক\'ড ৮১।"</string>
+    <string name="clh_callFailed_user_not_member_of_CUG_txt" msgid="2517559636224367413">"কলটো সম্পূৰ্ণ কৰিব পৰা নগ\'ল। আসোঁৱাহ ক\'ড ৮৭।"</string>
+    <string name="clh_callFailed_incompatible_destination_txt" msgid="7994154962189949306">"কলটো সম্পূৰ্ণ কৰিব পৰা নগ\'ল। আসোঁৱাহ ক\'ড ৮৮।"</string>
+    <string name="clh_callFailed_invalid_transit_network_selection_txt" msgid="5847046471813330674">"কলটো সম্পূৰ্ণ কৰিব পৰা নগ\'ল। আসোঁৱাহ ক\'ড ৯১।"</string>
+    <string name="clh_callFailed_semantically_incorrect_message_txt" msgid="5419940790658960361">"কলটো সম্পূৰ্ণ কৰিব পৰা নগ\'ল। আসোঁৱাহ ক\'ড ৯৫।"</string>
+    <string name="clh_callFailed_invalid_mandatory_information_txt" msgid="3350178645665420102">"কলটো সম্পূৰ্ণ কৰিব পৰা নগ\'ল। আসোঁৱাহ ক\'ড ৯৬।"</string>
+    <string name="clh_callFailed_message_type_non_existent_or_not_implemented_txt" msgid="7080310506268713895">"কলটো সম্পূৰ্ণ কৰিব পৰা নগ\'ল। আসোঁৱাহ ক\'ড ৯৭।"</string>
+    <string name="clh_callFailed_message_type_not_compatible_with_protocol_state_txt" msgid="5251558113020693277">"কলটো সম্পূৰ্ণ কৰিব পৰা নগ\'ল। আসোঁৱাহ ক\'ড ৯৮।"</string>
+    <string name="clh_callFailed_information_element_non_existent_or_not_implemented_txt" msgid="1643642065908165846">"কলটো সম্পূৰ্ণ কৰিব পৰা নগ\'ল। আসোঁৱাহ ক\'ড ৯৯।"</string>
+    <string name="clh_callFailed_conditional_IE_error_txt" msgid="1622467860490603665">"কলটো সম্পূৰ্ণ কৰিব পৰা নগ\'ল। আসোঁৱাহ ক\'ড ১০০।"</string>
+    <string name="clh_callFailed_message_not_compatible_with_protocol_state_txt" msgid="3776039646804248109">"কলটো সম্পূৰ্ণ কৰিব পৰা নগ\'ল। আসোঁৱাহ ক\'ড ১০১।"</string>
+    <string name="clh_callFailed_recovery_on_timer_expiry_txt" msgid="4529313282997136028">"কলটো সম্পূৰ্ণ কৰিব পৰা নগ\'ল। আসোঁৱাহ ক\'ড ১০২।"</string>
+    <string name="clh_callFailed_protocol_Error_unspecified_txt" msgid="4900075501687505296">"কলটো সম্পূৰ্ণ কৰিব পৰা নগ\'ল। আসোঁৱাহ ক\'ড ১১১।"</string>
+    <string name="clh_callFailed_interworking_unspecified_txt" msgid="6701560054199411045">"কলটো সম্পূৰ্ণ কৰিব পৰা নগ\'ল। আসোঁৱাহ ক\'ড ১২৭।"</string>
     <string name="labelCallBarring" msgid="3452870940716226978">"কল প্ৰতিবন্ধকতা"</string>
     <string name="sum_call_barring_enabled" msgid="6804489690436703488">"অন"</string>
     <string name="sum_call_barring_disabled" msgid="5900772179198857783">"অফ"</string>

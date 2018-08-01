@@ -15,6 +15,9 @@ import android.telephony.CarrierConfigManager;
 import android.util.AttributeSet;
 import android.util.Log;
 
+import com.android.internal.telephony.CommandException;
+import com.android.internal.telephony.Phone;
+
 public class CallWaitingSwitchPreference extends SwitchPreference {
     private static final String LOG_TAG = "CallWaitingSwitchPreference";
     private final boolean DBG = (PhoneGlobals.DBG_LEVEL >= 2);

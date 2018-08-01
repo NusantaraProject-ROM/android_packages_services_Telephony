@@ -495,6 +495,7 @@
     <string name="incall_error_cannot_add_call" msgid="8878159278947023326">"ଏବେ କଲ୍‌କୁ ଯୋଡ଼ାଯାଇପାରିବ ନାହିଁ। ଆପଣ ମେସେଜ୍ ପଠାଇ ସମ୍ପର୍କ କରିବା ପାଇଁ ଚେଷ୍ଟା କରିପାରନ୍ତି।"</string>
     <string name="incall_error_supp_service_unknown" msgid="655570339115407698">"ସେବା ସପୋର୍ଟ କରୁନାହିଁ"</string>
     <string name="incall_error_supp_service_switch" msgid="5237002176899962862">"କଲ୍‌କୁ ସ୍ଵିଚ୍ କରିହେବ ନାହିଁ।"</string>
+    <string name="incall_error_supp_service_resume" msgid="7147983409782027448">"କଲ୍‍କୁ ପୁଣି ଆରମ୍ଭ କରିହେବ ନାହିଁ।"</string>
     <string name="incall_error_supp_service_separate" msgid="7224393405134545246">"କଲ୍‌କୁ ଅଲଗା କରିହେବ ନାହିଁ।"</string>
     <string name="incall_error_supp_service_transfer" msgid="7235952238189391438">"ଟ୍ରାନ୍ସଫର୍ କରିହେବ ନାହିଁ।"</string>
     <string name="incall_error_supp_service_conference" msgid="2505727299596357312">"କନଫରେନ୍ସ କଲ୍ କରିବାରେ ଅକ୍ଷମ।"</string>
@@ -503,7 +504,15 @@
     <string name="incall_error_supp_service_hold" msgid="7967020511232222078">"କଲ୍‍କୁ ହୋଲ୍ଡ କରାଯାଇପାରିବ ନାହିଁ।"</string>
     <string name="incall_error_wfc_only_no_wireless_network" msgid="1782466780452640089">"ଗୋଟିଏ କଲ୍ କରିବା ପାଇଁ ଏକ ତାରବିହୀନ ନେଟ୍‌ୱର୍କ ସହ କନେକ୍ଟ କରନ୍ତୁ।"</string>
     <string name="incall_error_promote_wfc" msgid="106510757624022064">"ଗୋଟିଏ କଲ୍ କରିବା ପାଇଁ ୱାଇ-ଫାଇ କଲିଙ୍ଗକୁ ସକ୍ଷମ କରନ୍ତୁ।"</string>
+    <string name="emergency_information_title" msgid="4380389555729227377">"ଆପାତକାଳୀନ ସୂଚନା"</string>
     <string name="emergency_enable_radio_dialog_title" msgid="4627849966634578257">"ଜରୁରୀକାଳିନ କଲ୍‌"</string>
+    <string name="emergency_dialpad_title" msgid="6052294225467269233">"କେବଳ ଜରୁରୀକାଳୀନ କଲ୍‌"</string>
+    <!-- no translation found for single_emergency_number_title (4959203129714396515) -->
+    <skip />
+    <!-- no translation found for numerous_emergency_numbers_title (754158099451343898) -->
+    <skip />
+    <!-- no translation found for emergency_call_shortcut_hint (6506167229097004348) -->
+    <skip />
     <string name="emergency_enable_radio_dialog_message" msgid="207613549344420291">"ରେଡିଓକୁ ଚାଲୁ କରାଯାଉଛି…"</string>
     <string name="emergency_enable_radio_dialog_retry" msgid="5960061579996526883">"କୌଣସି ସେବା ନାହିଁ। ପୁଣି ଚେଷ୍ଟାକରାଯାଉଛି…"</string>
     <string name="radio_off_during_emergency_call" msgid="2535800034010306830">"ଗୋଟିଏ ଜରୁରିକାଳୀନ କଲ୍ କରିବାବେଳେ ଏୟାରପ୍ଲେନ୍ ମୋଡ୍‌କୁ ପ୍ରବେଶ କରାଯାଇପାରିବ ନାହିଁ।"</string>
@@ -595,6 +604,7 @@
     <string name="selectContact" msgid="781975788478987237">"ଯୋଗାଯୋଗକୁ ଚୟନ କରନ୍ତୁ"</string>
     <string name="not_voice_capable" msgid="2739898841461577811">"ଭଏସ୍ କଲ୍ ସପୋର୍ଟ କରୁନାହିଁ"</string>
     <string name="description_dial_button" msgid="7459705245418435351">"ଡାଏଲ୍ କରନ୍ତୁ"</string>
+    <string name="description_dialpad_button" msgid="5220006811894230590">"ଡାୟଲ୍‍ପ୍ୟାଡ୍‍ ଦେଖାନ୍ତୁ"</string>
     <string name="voicemail_visual_voicemail_switch_title" msgid="5012622186976275457">"ଭିଜୁଆଲ୍ ଭଏସମେଲ୍"</string>
     <string name="voicemail_set_pin_dialog_title" msgid="2797924461029093837">"PIN ସେଟ୍ କରନ୍ତୁ"</string>
     <string name="voicemail_change_pin_dialog_title" msgid="6035421908626121564">"PIN ବଦଳାନ୍ତୁ"</string>
@@ -645,58 +655,58 @@
     <string name="mobile_data_activate_button" msgid="3682400969184405446">"ଡାଟା ଯୋଡ଼ନ୍ତୁ"</string>
     <string name="mobile_data_activate_cancel_button" msgid="1708022171547398765">"କ୍ୟାନ୍ସଲ୍‍ କରନ୍ତୁ"</string>
     <string name="clh_card_title_call_ended_txt" msgid="4072101334811753823">"କଲ୍ ସମାପ୍ତ ହୋ‌ଇଛି"</string>
-    <string name="clh_callFailed_powerOff_txt" msgid="3773036949107147708">"ରେଡିଓ ବନ୍ଦ କରନ୍ତୁ"</string>
-    <string name="clh_callFailed_simError_txt" msgid="757650590524277969">"କୌଣସି SIM କାର୍ଡ ନାହିଁ କିମ୍ବା SIM କାର୍ଡରେ ତ୍ରୁଟି ଅଛି"</string>
+    <string name="clh_callFailed_powerOff_txt" msgid="1049579267090569308">"ଏୟାରପ୍ଲେନ୍ ମୋଡ୍ ଅନ୍‌ ଅଛି"</string>
+    <string name="clh_callFailed_simError_txt" msgid="7273306159809203315">"SIM କାର୍ଡକୁ ଆକ୍ସେସ୍ କରିହେଉନାହିଁ"</string>
     <string name="clh_incall_error_out_of_service_txt" msgid="3974373603657193827">"ମୋବାଇଲ୍ ନେଟ୍‌ୱର୍କ ଉପଲବ୍ଧ ଅଛି"</string>
-    <string name="clh_callFailed_unassigned_number_txt" msgid="7635996793232604064">"ଆସାଇନ୍ କରାଯାଇନଥିବା (ପ୍ରଦାନ କରାଯାଇନଥିବା) ନମ୍ବର୍"</string>
-    <string name="clh_callFailed_no_route_to_destination_txt" msgid="8561586745288855167">"ଗନ୍ତବ୍ୟ ସ୍ଥାନକୁ କୌଣସି ମାର୍ଗ ନାହିଁ"</string>
-    <string name="clh_callFailed_channel_unacceptable_txt" msgid="8048626924246611459">"ଚ୍ୟାନେଲ୍ ସ୍ଵୀକାର୍ଯ୍ୟ ନୁହେଁ"</string>
-    <string name="clh_callFailed_operator_determined_barring_txt" msgid="6889705714244076823">"ଅପରେଟର୍‌ଙ୍କ ଦ୍ଵାରା ନିର୍ଦ୍ଧାରିତ ପ୍ରତିବନ୍ଧ"</string>
-    <string name="clh_callFailed_normal_call_clearing_txt" msgid="2810975267106345820">"ସାଧାରଣ କଲ୍ ଖାଲିକରନ୍ତୁ"</string>
+    <string name="clh_callFailed_unassigned_number_txt" msgid="4722164461846838251">"ଆପଣ ଡାଏଲ୍ କରିବା ପାଇଁ ଚେଷ୍ଟା କରୁଥିବା ଫୋନ୍ ନମ୍ବର୍‌ରେ ସମସ୍ୟା ଅଛି। ତ୍ରୁଟି କୋଡ୍ 1।"</string>
+    <string name="clh_callFailed_no_route_to_destination_txt" msgid="2259464183880140671">"କଲ୍ ସମ୍ପୂର୍ଣ୍ଣ କରିହେଲା ନାହିଁ। ତ୍ରୁଟି କୋଡ୍ 3।"</string>
+    <string name="clh_callFailed_channel_unacceptable_txt" msgid="3159336281525222855">"କଲ୍ ସମ୍ପୂର୍ଣ୍ଣ କରିହେଲା ନାହିଁ। ତ୍ରୁଟି କୋଡ୍ 6।"</string>
+    <string name="clh_callFailed_operator_determined_barring_txt" msgid="1831977101604817389">"କଲ୍ ସମ୍ପୂର୍ଣ୍ଣ କରିହେଲା ନାହିଁ। ତ୍ରୁଟି କୋଡ୍ 8।"</string>
+    <string name="clh_callFailed_normal_call_clearing_txt" msgid="7369313431310446847">"କଲ୍ ସମ୍ପୂର୍ଣ୍ଣ କରିହେଲା ନାହିଁ। ତ୍ରୁଟି କୋଡ୍ 16।"</string>
     <string name="clh_callFailed_user_busy_txt" msgid="2736095995784746915">"ୟୁଜର୍ ବ୍ୟସ୍ତ ଅଛନ୍ତି"</string>
-    <string name="clh_callFailed_no_user_responding_txt" msgid="1421543095873040084">"କୌଣସି ୟୁଜର୍ ଉତ୍ତର ଦେଉନାହାନ୍ତି"</string>
-    <string name="clh_callFailed_user_alerting_txt" msgid="6606245970376797447">"ୟୁଜର୍ ଆଲର୍ଟ କରୁଛନ୍ତି, କୌଣସି ଉତ୍ତର ନାହିଁ"</string>
+    <string name="clh_callFailed_no_user_responding_txt" msgid="3675206502567252162">"ୟୁଜର୍ ଉତ୍ତର ଦେଉନାହାନ୍ତି"</string>
+    <string name="clh_callFailed_user_alerting_txt" msgid="363445537769733281">"କଲ୍ ସମ୍ପୂର୍ଣ୍ଣ କରିହେଲା ନାହିଁ। ତ୍ରୁଟି କୋଡ୍ 19।"</string>
     <string name="clh_callFailed_call_rejected_txt" msgid="8001665478195793223">"କଲ୍‌କୁ ପ୍ରତ୍ୟାଖ୍ୟାନ କରାଗଲା"</string>
     <string name="clh_callFailed_number_changed_txt" msgid="5127909898925154242">"ନମ୍ବର୍ ବଦଳିଯାଇଛି"</string>
-    <string name="clh_callFailed_pre_emption_txt" msgid="6864702416751338567">"ପୂର୍ବାନୁମାନ"</string>
-    <string name="clh_callFailed_non_selected_user_clearing_txt" msgid="8725898326616836656">"ଅଚୟନିତ ୟୁଜର୍‌ଙ୍କୁ ଖାଲି କରନ୍ତୁ"</string>
-    <string name="clh_callFailed_destination_out_of_order_txt" msgid="6626355413556362437">"ଗନ୍ତବ୍ୟ ଖରାପ ଅଛି"</string>
+    <string name="clh_callFailed_pre_emption_txt" msgid="1100414016302714854">"କଲ୍ ସମ୍ପୂର୍ଣ୍ଣ କରିହେଲା ନାହିଁ। ତ୍ରୁଟି କୋଡ୍ 25।"</string>
+    <string name="clh_callFailed_non_selected_user_clearing_txt" msgid="6248192300127702626">"କଲ୍ ସମ୍ପୂର୍ଣ୍ଣ କରିହେଲା ନାହିଁ। ତ୍ରୁଟି କୋଡ୍ 26।"</string>
+    <string name="clh_callFailed_destination_out_of_order_txt" msgid="4879936907430554772">"କଲ୍ ସମ୍ପୂର୍ଣ୍ଣ କରିହେଲା ନାହିଁ। ତ୍ରୁଟି କୋଡ୍ 27।"</string>
     <string name="clh_callFailed_invalid_number_format_txt" msgid="6987646655639655370">"ଅବୌଧ ନମ୍ବର୍ ଫର୍ମାଟ୍ (ଅସମ୍ପୂର୍ଣ୍ଣ ନମ୍ବର୍)"</string>
-    <string name="clh_callFailed_facility_rejected_txt" msgid="4539787567476563415">"ସୁବିଧାକୁ ପ୍ରତ୍ୟାଖ୍ୟାନ କରାଗଲା"</string>
-    <string name="clh_callFailed_response_to_STATUS_ENQUIRY_txt" msgid="178503536263624366">"ଷ୍ଟାଟସ୍ ଏନକ୍ଵାରୀର ଉତ୍ତର"</string>
-    <string name="clh_callFailed_normal_unspecified_txt" msgid="2777574148560245427">"ସାଧାରଣ, ଅନିର୍ଦ୍ଦିଷ୍ଟ"</string>
-    <string name="clh_callFailed_no_circuit_available_txt" msgid="2894749820848784700">"କୌଣସି ସର୍କିଟ୍ କିମ୍ବା ଚ୍ୟାନେଲ୍ ଉପଲବ୍ଧ ନାହିଁ"</string>
-    <string name="clh_callFailed_network_out_of_order_txt" msgid="807472585030492179">"ନେଟ୍‌ୱର୍କ ଖରାପ ଅଛି"</string>
-    <string name="clh_callFailed_temporary_failure_txt" msgid="1985847623937655151">"ଅସ୍ଥାୟୀରୂପେ ବିଫଳ ହୋ‌ଇଛି"</string>
-    <string name="clh_callFailed_switching_equipment_congestion_txt" msgid="465517139462928431">"ସ୍ଵିଚିଙ୍ଗ ଉପକରଣ ଭର୍ତ୍ତି ହୋ‌ଇଯାଇଛି"</string>
-    <string name="clh_callFailed_access_information_discarded_txt" msgid="132851305339579892">"ଆକ୍ସେସ୍ ସୂଚନାକୁ କାଢ଼ିଦିଆଗଲା"</string>
-    <string name="clh_callFailed_requested_circuit_txt" msgid="2316345471851443847">"ଅନୁରୋଧ କରାଯାଇଥିବା ସର୍କିଟ୍/ଚ୍ୟାନେଲ୍ ଉପଲବ୍ଧ ନାହିଁ"</string>
-    <string name="clh_callFailed_resources_unavailable_unspecified_txt" msgid="4460267429142724322">"ରିସୋର୍ସ ଉପଲବ୍ଧ ନାହିଁ, ଅନିର୍ଦ୍ଦିଷ୍ଟ"</string>
-    <string name="clh_callFailed_quality_of_service_unavailable_txt" msgid="7315823047206338755">"ସେବାର କ୍ଵାଲିଟୀ ଉପଲବ୍ଧ ନାହିଁ"</string>
-    <string name="clh_callFailed_requested_facility_not_subscribed_txt" msgid="1688438372518949530">"ଅନୁରୋଧ କରାଯାଇଥିବା ସୁବିଧା ସବସ୍କ୍ରାଇବ୍ କରାଯାଇନାହିଁ"</string>
-    <string name="clh_callFailed_incoming_calls_barred_within_the_CUG_txt" msgid="3922231620226043342">"CUG ମଧ୍ୟରେ ଇନକମିଙ୍ଗ କଲ୍‌କୁ ରୋକାଗଲା"</string>
-    <string name="clh_callFailed_bearer_capability_not_authorized_txt" msgid="6515594235334537340">"ଧାରକଙ୍କର କ୍ଷମତାକୁ ଅଧିକୃତ କରାଯାଇନାହିଁ"</string>
-    <string name="clh_callFailed_bearer_capability_not_presently_available_txt" msgid="8013567156449692135">"ଧାରକଙ୍କର କ୍ଷମତା ବର୍ତ୍ତମାନ ଉପଲବ୍ଧ ନାହିଁ"</string>
-    <string name="clh_callFailed_service_or_option_not_available_unspecified_txt" msgid="8663374141880847414">"ସେବା କିମ୍ବା ବିକଳ୍ପ ଉପଲବ୍ଧ ନାହିଁ, ଅନିର୍ଦ୍ଦିଷ୍ଟ"</string>
-    <string name="clh_callFailed_bearer_service_not_implemented_txt" msgid="2772484977847973583">"ଧାରକଙ୍କର ସେବାକୁ ପ୍ରୟୋଗ କରାଯାଇନାହିଁ"</string>
-    <string name="clh_callFailed_ACM_equal_to_or_greater_than_ACMmax_txt" msgid="2192709279981159761">"ACM, ACMmax ସହିତ ସମାନ କିମ୍ବା ଠାରୁ ବଡ଼ ହେବ"</string>
-    <string name="clh_callFailed_requested_facility_not_implemented_txt" msgid="406404292085779118">"ଅନୁରୋଧ କରାଯାଇଥିବା ସୁବିଧା ପ୍ରୟୋଗ କରାଯାଇନାହିଁ"</string>
-    <string name="clh_callFailed_only_restricted_digital_information_bearer_capability_is_available_txt" msgid="4817899794531157207">"କେବଳ ପ୍ରତିରୋଧିତ ଡିଜିଟାଲ୍ ସୂଚନା ଧାରକ କ୍ଷମତା ଉପଲବ୍ଧ ଅଛି"</string>
-    <string name="clh_callFailed_service_or_option_not_implemented_unspecified_txt" msgid="2968655784896862505">"ସେବା କିମ୍ବା ବିକଳ୍ପ ପ୍ରୟୋଗ କରାଯାଇନାହିଁ, ଅନିର୍ଦ୍ଦିଷ୍ଟ"</string>
-    <string name="clh_callFailed_invalid_transaction_identifier_value_txt" msgid="3843478518660918642">"କାରବାର ବିହ୍ନଟକର୍ତ୍ତାଙ୍କର ମୂଲ୍ୟ ଅବୈଧ ଅଟେ"</string>
-    <string name="clh_callFailed_user_not_member_of_CUG_txt" msgid="8462852903153938988">"ୟୁଜର୍ CUGର ସଭ୍ୟ ନୁହନ୍ତି"</string>
-    <string name="clh_callFailed_incompatible_destination_txt" msgid="2580750652910253219">"କମ୍ପ୍ୟାଟିବଲ୍‌ନଥିବା ଗନ୍ତବ୍ୟ"</string>
-    <string name="clh_callFailed_invalid_transit_network_selection_txt" msgid="6589916900457111005">"ଚୟନିତ ଅବୈଧ ଟ୍ରାନଜିଟ୍ ନେଟ୍‌ୱର୍କ"</string>
-    <string name="clh_callFailed_semantically_incorrect_message_txt" msgid="2329284157442218683">"ମେସେଜ୍‌ର ଅର୍ଥ ଭୁଲ୍ ଅଟେ"</string>
-    <string name="clh_callFailed_invalid_mandatory_information_txt" msgid="9081556111928912676">"ଅବୈଧ ବାଧ୍ୟତାମୂଳକ ସୂଚନା"</string>
-    <string name="clh_callFailed_message_type_non_existent_or_not_implemented_txt" msgid="2641350895896546715">"ମେସେଜ୍‌ର ପ୍ରକାର ଉପଲବ୍ଧ ନାହିଁ କିମ୍ବା ପ୍ରୟୋଗ କରାଯାଇନାହିଁ"</string>
-    <string name="clh_callFailed_message_type_not_compatible_with_protocol_state_txt" msgid="6598180735494982466">"ପ୍ରୋଟୋକଲ୍‌ର ଅବସ୍ଥା ସହିତ ମେସେଜ୍‌ର ପ୍ରକାର କମ୍ପ୍ୟାଟିବଲ୍ ନୁହେଁ"</string>
-    <string name="clh_callFailed_information_element_non_existent_or_not_implemented_txt" msgid="4725610801664706983">"ସୂଚନା ନାହିଁ କିମ୍ବା ଲାଗୁକରାଯାଇନାହିଁ"</string>
-    <string name="clh_callFailed_conditional_IE_error_txt" msgid="9140031076499566143">"ସର୍ତ୍ତ ସହିତ IE ତ୍ରୁଟି"</string>
-    <string name="clh_callFailed_message_not_compatible_with_protocol_state_txt" msgid="6586005128633024271">"ପ୍ରୋଟୋକଲ୍‌ର ଅବସ୍ଥା ସହିତ ମେସେଜ୍ କମ୍ପ୍ୟାଟିବଲ୍ ନୁହେଁ"</string>
-    <string name="clh_callFailed_recovery_on_timer_expiry_txt" msgid="3680765722923600294">"ଟାଇମର୍‌ର ସମାପ୍ତିରେ ପୁନଃପ୍ରାପ୍ତ କରନ୍ତୁ"</string>
-    <string name="clh_callFailed_protocol_Error_unspecified_txt" msgid="8294907817156524790">"ପ୍ରୋଟୋକଲ୍ ତ୍ରୁଟି, ଅନିର୍ଦ୍ଦିଷ୍ଟ"</string>
-    <string name="clh_callFailed_interworking_unspecified_txt" msgid="8838850798491763729">"ଇଣ୍ଟରୱର୍କିଙ୍ଗ, ନିର୍ଦ୍ଦିଷ୍ଟ କରାଯାଇନଥିବା"</string>
+    <string name="clh_callFailed_facility_rejected_txt" msgid="1028912823639389563">"କଲ୍ ସମ୍ପୂର୍ଣ୍ଣ କରିହେଲା ନାହିଁ। ତ୍ରୁଟି କୋଡ୍ 29।"</string>
+    <string name="clh_callFailed_response_to_STATUS_ENQUIRY_txt" msgid="1250833944238081212">"କଲ୍ ସମ୍ପୂର୍ଣ୍ଣ କରିହେଲା ନାହିଁ। ତ୍ରୁଟି କୋଡ୍ 30।"</string>
+    <string name="clh_callFailed_normal_unspecified_txt" msgid="8765640093649364786">"କଲ୍ ସମ୍ପୂର୍ଣ୍ଣ କରିହେଲା ନାହିଁ। ତ୍ରୁଟି କୋଡ୍ 31।"</string>
+    <string name="clh_callFailed_no_circuit_available_txt" msgid="6884477141997665736">"କଲ୍ ସମ୍ପୂର୍ଣ୍ଣ କରିହେଲା ନାହିଁ। ତ୍ରୁଟି କୋଡ୍ 34।"</string>
+    <string name="clh_callFailed_network_out_of_order_txt" msgid="76447023032000125">"କଲ୍ ସମ୍ପୂର୍ଣ୍ଣ କରିହେଲା ନାହିଁ। ତ୍ରୁଟି କୋଡ୍ 38।"</string>
+    <string name="clh_callFailed_temporary_failure_txt" msgid="5057716306945664356">"କଲ୍ ସମ୍ପୂର୍ଣ୍ଣ କରିହେଲା ନାହିଁ। ତ୍ରୁଟି କୋଡ୍ 41।"</string>
+    <string name="clh_callFailed_switching_equipment_congestion_txt" msgid="4958831706265227632">"କଲ୍ ସମ୍ପୂର୍ଣ୍ଣ କରିହେଲା ନାହିଁ। ତ୍ରୁଟି କୋଡ୍ 42।"</string>
+    <string name="clh_callFailed_access_information_discarded_txt" msgid="5033636666434831179">"କଲ୍ ସମ୍ପୂର୍ଣ୍ଣ କରିହେଲା ନାହିଁ। ତ୍ରୁଟି କୋଡ୍ 43।"</string>
+    <string name="clh_callFailed_requested_circuit_txt" msgid="3221429183862933558">"କଲ୍ ସମ୍ପୂର୍ଣ୍ଣ କରିହେଲା ନାହିଁ। ତ୍ରୁଟି କୋଡ୍ 44।"</string>
+    <string name="clh_callFailed_resources_unavailable_unspecified_txt" msgid="1385943395137055442">"କଲ୍ ସମ୍ପୂର୍ଣ୍ଣ କରିହେଲା ନାହିଁ। ତ୍ରୁଟି କୋଡ୍ 47।"</string>
+    <string name="clh_callFailed_quality_of_service_unavailable_txt" msgid="8464132603057397297">"କଲ୍ ସମ୍ପୂର୍ଣ୍ଣ କରିହେଲା ନାହିଁ। ତ୍ରୁଟି କୋଡ୍ 49।"</string>
+    <string name="clh_callFailed_requested_facility_not_subscribed_txt" msgid="3853815238079666882">"କଲ୍ ସମ୍ପୂର୍ଣ୍ଣ କରିହେଲା ନାହିଁ। ତ୍ରୁଟି କୋଡ୍ 50।"</string>
+    <string name="clh_callFailed_incoming_calls_barred_within_the_CUG_txt" msgid="6791665425652545510">"କଲ୍ ସମ୍ପୂର୍ଣ୍ଣ କରିହେଲା ନାହିଁ। ତ୍ରୁଟି କୋଡ୍ 55।"</string>
+    <string name="clh_callFailed_bearer_capability_not_authorized_txt" msgid="2975453855928450909">"କଲ୍ ସମ୍ପୂର୍ଣ୍ଣ କରିହେଲା ନାହିଁ। ତ୍ରୁଟି କୋଡ୍ 57।"</string>
+    <string name="clh_callFailed_bearer_capability_not_presently_available_txt" msgid="753763978405557873">"କଲ୍ ସମ୍ପୂର୍ଣ୍ଣ କରିହେଲା ନାହିଁ। ତ୍ରୁଟି କୋଡ୍ 58।"</string>
+    <string name="clh_callFailed_service_or_option_not_available_unspecified_txt" msgid="1714515856150546668">"କଲ୍ ସମ୍ପୂର୍ଣ୍ଣ କରିହେଲା ନାହିଁ। ତ୍ରୁଟି କୋଡ୍ 63।"</string>
+    <string name="clh_callFailed_bearer_service_not_implemented_txt" msgid="5433179845809692163">"କଲ୍ ସମ୍ପୂର୍ଣ୍ଣ କରିହେଲା ନାହିଁ। ତ୍ରୁଟି କୋଡ୍ 65।"</string>
+    <string name="clh_callFailed_ACM_equal_to_or_greater_than_ACMmax_txt" msgid="4339523227014428123">"କଲ୍ ସମ୍ପୂର୍ଣ୍ଣ କରିହେଲା ନାହିଁ। ତ୍ରୁଟି କୋଡ୍ 68।"</string>
+    <string name="clh_callFailed_requested_facility_not_implemented_txt" msgid="5217500914101821728">"କଲ୍ ସମ୍ପୂର୍ଣ୍ଣ କରିହେଲା ନାହିଁ। ତ୍ରୁଟି କୋଡ୍ 69।"</string>
+    <string name="clh_callFailed_only_restricted_digital_information_bearer_capability_is_available_txt" msgid="2423146296631060723">"କଲ୍ ସମ୍ପୂର୍ଣ୍ଣ କରିହେଲା ନାହିଁ। ତ୍ରୁଟି କୋଡ୍ 70।"</string>
+    <string name="clh_callFailed_service_or_option_not_implemented_unspecified_txt" msgid="873208782556277597">"କଲ୍ ସମ୍ପୂର୍ଣ୍ଣ କରିହେଲା ନାହିଁ। ତ୍ରୁଟି କୋଡ୍ 79।"</string>
+    <string name="clh_callFailed_invalid_transaction_identifier_value_txt" msgid="3926779129494281620">"କଲ୍ ସମ୍ପୂର୍ଣ୍ଣ କରିହେଲା ନାହିଁ। ତ୍ରୁଟି କୋଡ୍ 81।"</string>
+    <string name="clh_callFailed_user_not_member_of_CUG_txt" msgid="2517559636224367413">"କଲ୍ ସମ୍ପୂର୍ଣ୍ଣ କରିହେଲା ନାହିଁ। ତ୍ରୁଟି କୋଡ୍ 87।"</string>
+    <string name="clh_callFailed_incompatible_destination_txt" msgid="7994154962189949306">"କଲ୍ ସମ୍ପୂର୍ଣ୍ଣ କରିହେଲା ନାହିଁ। ତ୍ରୁଟି କୋଡ୍ 88।"</string>
+    <string name="clh_callFailed_invalid_transit_network_selection_txt" msgid="5847046471813330674">"କଲ୍ ସମ୍ପୂର୍ଣ୍ଣ କରିହେଲା ନାହିଁ। ତ୍ରୁଟି କୋଡ୍ 91।"</string>
+    <string name="clh_callFailed_semantically_incorrect_message_txt" msgid="5419940790658960361">"କଲ୍ ସମ୍ପୂର୍ଣ୍ଣ କରିହେଲା ନାହିଁ। ତ୍ରୁଟି କୋଡ୍ 95।"</string>
+    <string name="clh_callFailed_invalid_mandatory_information_txt" msgid="3350178645665420102">"କଲ୍ ସମ୍ପୂର୍ଣ୍ଣ କରିହେଲା ନାହିଁ। ତ୍ରୁଟି କୋଡ୍ 96।"</string>
+    <string name="clh_callFailed_message_type_non_existent_or_not_implemented_txt" msgid="7080310506268713895">"କଲ୍ ସମ୍ପୂର୍ଣ୍ଣ କରିହେଲା ନାହିଁ। ତ୍ରୁଟି କୋଡ୍ 97।"</string>
+    <string name="clh_callFailed_message_type_not_compatible_with_protocol_state_txt" msgid="5251558113020693277">"କଲ୍ ସମ୍ପୂର୍ଣ୍ଣ କରିହେଲା ନାହିଁ। ତ୍ରୁଟି କୋଡ୍ 98।"</string>
+    <string name="clh_callFailed_information_element_non_existent_or_not_implemented_txt" msgid="1643642065908165846">"କଲ୍ ସମ୍ପୂର୍ଣ୍ଣ କରିହେଲା ନାହିଁ। ତ୍ରୁଟି କୋଡ୍ 99।"</string>
+    <string name="clh_callFailed_conditional_IE_error_txt" msgid="1622467860490603665">"କଲ୍ ସମ୍ପୂର୍ଣ୍ଣ କରିହେଲା ନାହିଁ। ତ୍ରୁଟି କୋଡ୍ 100।"</string>
+    <string name="clh_callFailed_message_not_compatible_with_protocol_state_txt" msgid="3776039646804248109">"କଲ୍ ସମ୍ପୂର୍ଣ୍ଣ କରିହେଲା ନାହିଁ। ତ୍ରୁଟି କୋଡ୍ 101।"</string>
+    <string name="clh_callFailed_recovery_on_timer_expiry_txt" msgid="4529313282997136028">"କଲ୍ ସମ୍ପୂର୍ଣ୍ଣ କରିହେଲା ନାହିଁ। ତ୍ରୁଟି କୋଡ୍ 102।"</string>
+    <string name="clh_callFailed_protocol_Error_unspecified_txt" msgid="4900075501687505296">"କଲ୍ ସମ୍ପୂର୍ଣ୍ଣ କରିହେଲା ନାହିଁ। ତ୍ରୁଟି କୋଡ୍ 111।"</string>
+    <string name="clh_callFailed_interworking_unspecified_txt" msgid="6701560054199411045">"କଲ୍ ସମ୍ପୂର୍ଣ୍ଣ କରିହେଲା ନାହିଁ। ତ୍ରୁଟି କୋଡ୍ 127।"</string>
     <string name="labelCallBarring" msgid="3452870940716226978">"କଲ୍‌ ରୋକନ୍ତୁ"</string>
     <string name="sum_call_barring_enabled" msgid="6804489690436703488">"ଅନ୍ ଅଛି"</string>
     <string name="sum_call_barring_disabled" msgid="5900772179198857783">"ଅଫ୍ ଅଛି"</string>

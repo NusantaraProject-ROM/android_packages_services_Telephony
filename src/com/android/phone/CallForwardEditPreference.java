@@ -1,9 +1,7 @@
 package com.android.phone;
 
-import com.android.internal.telephony.CallForwardInfo;
-import com.android.internal.telephony.CommandException;
-import com.android.internal.telephony.CommandsInterface;
-import com.android.internal.telephony.Phone;
+import static com.android.phone.TimeConsumingPreferenceActivity.EXCEPTION_ERROR;
+import static com.android.phone.TimeConsumingPreferenceActivity.RESPONSE_ERROR;
 
 import android.app.AlertDialog;
 import android.content.Context;
@@ -33,6 +31,11 @@ import org.codeaurora.ims.utils.QtiImsExtUtils;
 
 import static com.android.phone.TimeConsumingPreferenceActivity.RESPONSE_ERROR;
 import static com.android.phone.TimeConsumingPreferenceActivity.EXCEPTION_ERROR;
+
+import com.android.internal.telephony.CallForwardInfo;
+import com.android.internal.telephony.CommandException;
+import com.android.internal.telephony.CommandsInterface;
+import com.android.internal.telephony.Phone;
 
 public class CallForwardEditPreference extends EditPhoneNumberPreference {
     private static final String LOG_TAG = "CallForwardEditPreference";
@@ -302,6 +305,23 @@ public class CallForwardEditPreference extends EditPhoneNumberPreference {
         }
         String voicemailNumber = mPhone.getVoiceMailNumber();
         setPhoneNumber(displayVoicemailNumber ? voicemailNumber : callForwardInfo.number);
+    }
+
+    /**
+     * Starts the Call Forwarding Option query to the network and calls
+     * {@link TimeConsumingPreferenceListener#onStarted}. Will call
+     * {@link TimeConsumingPreferenceListener#onFinished} when finished, or
+     * {@link TimeConsumingPreferenceListener#onError} if an error has occurred.
+     */
+    void startCallForwardOptionsQuery() {
+        mPhone.getCallForwardingOption(reason,
+                mHandler.obtainMessage(MyHandler.MESSAGE_GET_CF,
+                        // unused in this case
+                        CommandsInterface.CF_ACTION_DISABLE,
+                        MyHandler.MESSAGE_GET_CF, null));
+        if (mTcpListener != null) {
+            mTcpListener.onStarted(this, true);
+        }
     }
 
     private void updateSummaryText() {

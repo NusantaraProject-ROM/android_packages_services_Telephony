@@ -788,13 +788,6 @@ public class MobileNetworkSettings extends Activity  {
             int max = mSubscriptionManager.getActiveSubscriptionInfoCountMax();
             mActiveSubInfos = new ArrayList<SubscriptionInfo>(max);
 
-            IntentFilter intentFilter = new IntentFilter(
-                    TelephonyIntents.ACTION_RADIO_TECHNOLOGY_CHANGED);
-            activity.registerReceiver(mPhoneChangeReceiver, intentFilter);
-
-            activity.getContentResolver().registerContentObserver(ENFORCE_MANAGED_URI, false,
-                    mDpcEnforcedContentObserver);
-
             Log.i(LOG_TAG, "onCreate:-");
         }
 
@@ -822,6 +815,10 @@ public class MobileNetworkSettings extends Activity  {
             @Override
             public void onReceive(Context context, Intent intent) {
                 Log.i(LOG_TAG, "onReceive:");
+                if (getActivity() == null || getContext() == null) {
+                    // Received broadcast and activity is in the process of being torn down.
+                    return;
+                }
                 // When the radio changes (ex: CDMA->GSM), refresh all options.
                 updateBody();
             }
@@ -835,18 +832,20 @@ public class MobileNetworkSettings extends Activity  {
             @Override
             public void onChange(boolean selfChange) {
                 Log.i(LOG_TAG, "DPC enforced onChange:");
+                if (getActivity() == null || getContext() == null) {
+                    // Received content change and activity is in the process of being torn down.
+                    return;
+                }
                 updateBody();
             }
         }
 
         @Override
         public void onDestroy() {
-            unbindNetworkQueryService();
             super.onDestroy();
-            if (getActivity() != null) {
-                getActivity().unregisterReceiver(mPhoneChangeReceiver);
-                getActivity().getContentResolver().unregisterContentObserver(
-                        mDpcEnforcedContentObserver);
+            unbindNetworkQueryService();
+            if (mMobileDataPref != null) {
+                mMobileDataPref.dispose();
             }
         }
 
@@ -883,6 +882,13 @@ public class MobileNetworkSettings extends Activity  {
             updateCallingCategory();
 
             mSubscriptionManager.addOnSubscriptionsChangedListener(mOnSubscriptionsChangeListener);
+
+            final Context context = getActivity();
+            IntentFilter intentFilter = new IntentFilter(
+                    TelephonyIntents.ACTION_RADIO_TECHNOLOGY_CHANGED);
+            context.registerReceiver(mPhoneChangeReceiver, intentFilter);
+            context.getContentResolver().registerContentObserver(ENFORCE_MANAGED_URI, false,
+                    mDpcEnforcedContentObserver);
 
             Log.i(LOG_TAG, "onResume:-");
 
@@ -1220,6 +1226,10 @@ public class MobileNetworkSettings extends Activity  {
 
             mSubscriptionManager
                     .removeOnSubscriptionsChangedListener(mOnSubscriptionsChangeListener);
+
+            final Context context = getActivity();
+            context.unregisterReceiver(mPhoneChangeReceiver);
+            context.getContentResolver().unregisterContentObserver(mDpcEnforcedContentObserver);
             if (DBG) log("onPause:-");
         }
 
@@ -1758,7 +1768,8 @@ public class MobileNetworkSettings extends Activity  {
                 }
             } else if (mImsMgr == null
                     || !mImsMgr.isWfcEnabledByPlatform()
-                    || !mImsMgr.isWfcProvisionedOnDevice()) {
+                    || !mImsMgr.isWfcProvisionedOnDevice()
+                    || !isImsServiceStateReady()) {
                 removePref = true;
             } else {
                 int resId = com.android.internal.R.string.wifi_calling_off_summary;
@@ -1801,24 +1812,19 @@ public class MobileNetworkSettings extends Activity  {
             PersistableBundle carrierConfig = PhoneGlobals.getInstance()
                     .getCarrierConfigForSubId(mPhone.getSubId());
 
-            try {
-                if ((mImsMgr == null
-                        || mImsMgr.getImsServiceState() != ImsFeature.STATE_READY
-                        || !mImsMgr.isVolteEnabledByPlatform()
-                        || !mImsMgr.isVolteProvisionedOnDevice()
-                        || carrierConfig.getBoolean(
-                        CarrierConfigManager.KEY_HIDE_ENHANCED_4G_LTE_BOOL))) {
-                    getPreferenceScreen().removePreference(mButton4glte);
-                } else {
-                    mButton4glte.setEnabled(is4gLtePrefEnabled(carrierConfig)
-                            && hasActiveSubscriptions());
-                    boolean enh4glteMode = mImsMgr.isEnhanced4gLteModeSettingEnabledByUser()
-                            && mImsMgr.isNonTtyOrTtyOnVolteEnabled();
-                    mButton4glte.setChecked(enh4glteMode);
-                }
-            } catch (ImsException ex) {
-                log("Exception when trying to get ImsServiceStatus: " + ex);
+            if ((mImsMgr == null
+                    || !mImsMgr.isVolteEnabledByPlatform()
+                    || !mImsMgr.isVolteProvisionedOnDevice()
+                    || !isImsServiceStateReady()
+                    || carrierConfig.getBoolean(
+                    CarrierConfigManager.KEY_HIDE_ENHANCED_4G_LTE_BOOL))) {
                 getPreferenceScreen().removePreference(mButton4glte);
+            } else {
+                mButton4glte.setEnabled(is4gLtePrefEnabled(carrierConfig)
+                        && hasActiveSubscriptions());
+                boolean enh4glteMode = mImsMgr.isEnhanced4gLteModeSettingEnabledByUser()
+                        && mImsMgr.isNonTtyOrTtyOnVolteEnabled();
+                mButton4glte.setChecked(enh4glteMode);
             }
         }
 
@@ -1833,6 +1839,7 @@ public class MobileNetworkSettings extends Activity  {
             if (mImsMgr != null
                     && mImsMgr.isVtEnabledByPlatform()
                     && mImsMgr.isVtProvisionedOnDevice()
+                    && isImsServiceStateReady()
                     && (carrierConfig.getBoolean(
                         CarrierConfigManager.KEY_IGNORE_DATA_ENABLED_CHANGED_FOR_VIDEO_CALLS)
                         || mPhone.mDcTracker.isDataEnabled())) {
@@ -2100,6 +2107,21 @@ public class MobileNetworkSettings extends Activity  {
             } else {
                 mCdmaOptions.update(phone);
             }
+        }
+
+        private boolean isImsServiceStateReady() {
+            boolean isImsServiceStateReady = false;
+
+            try {
+                if (mImsMgr != null && mImsMgr.getImsServiceState() == ImsFeature.STATE_READY) {
+                    isImsServiceStateReady = true;
+                }
+            } catch (ImsException ex) {
+                loge("Exception when trying to get ImsServiceStatus: " + ex);
+            }
+
+            log("isImsServiceStateReady=" + isImsServiceStateReady);
+            return isImsServiceStateReady;
         }
     }
 }

@@ -27,8 +27,6 @@ import android.content.pm.ResolveInfo;
 import android.net.Uri;
 import android.os.AsyncResult;
 import android.os.Bundle;
-import android.os.Handler;
-import android.os.Message;
 import android.os.PersistableBundle;
 import android.preference.Preference;
 import android.preference.PreferenceActivity;

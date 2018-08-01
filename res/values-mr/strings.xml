@@ -495,6 +495,7 @@
     <string name="incall_error_cannot_add_call" msgid="8878159278947023326">"या वेळी कॉल जोडू शकत नाही. तुम्ही मेसेज पाठवून संपर्क करण्याचा प्रयत्न करू शकता."</string>
     <string name="incall_error_supp_service_unknown" msgid="655570339115407698">"सेवा समर्थित नाही"</string>
     <string name="incall_error_supp_service_switch" msgid="5237002176899962862">"कॉल स्विच करू शकत नाही."</string>
+    <string name="incall_error_supp_service_resume" msgid="7147983409782027448">"कॉल पुन्‍हा सुरू करू शकत नाही."</string>
     <string name="incall_error_supp_service_separate" msgid="7224393405134545246">"कॉल विभक्त करू शकत नाही."</string>
     <string name="incall_error_supp_service_transfer" msgid="7235952238189391438">"हस्तांतर करू शकत नाही."</string>
     <string name="incall_error_supp_service_conference" msgid="2505727299596357312">"परिषद कॉल करण्‍यात अक्षम."</string>
@@ -503,7 +504,15 @@
     <string name="incall_error_supp_service_hold" msgid="7967020511232222078">"कॉल सुरु ठेवू शकत नाही."</string>
     <string name="incall_error_wfc_only_no_wireless_network" msgid="1782466780452640089">"कॉल करण्‍यासाठी वायरलेस नेटवर्कशी कनेक्‍ट करा."</string>
     <string name="incall_error_promote_wfc" msgid="106510757624022064">"कॉल करण्यासाठी वाय-फाय कॉलिंग सक्षम करा."</string>
+    <string name="emergency_information_title" msgid="4380389555729227377">"अतिमहत्त्वाची माहिती"</string>
     <string name="emergency_enable_radio_dialog_title" msgid="4627849966634578257">"आणीबाणीचा कॉल"</string>
+    <string name="emergency_dialpad_title" msgid="6052294225467269233">"फक्त आणीबाणी कॉल"</string>
+    <!-- no translation found for single_emergency_number_title (4959203129714396515) -->
+    <skip />
+    <!-- no translation found for numerous_emergency_numbers_title (754158099451343898) -->
+    <skip />
+    <!-- no translation found for emergency_call_shortcut_hint (6506167229097004348) -->
+    <skip />
     <string name="emergency_enable_radio_dialog_message" msgid="207613549344420291">"रेडिओ चालू करत आहे..."</string>
     <string name="emergency_enable_radio_dialog_retry" msgid="5960061579996526883">"सेवा नाही. पुन्हा प्रयत्न करत आहे…"</string>
     <string name="radio_off_during_emergency_call" msgid="2535800034010306830">"आणीबाणी कॉलदरम्यान विमान मोडमध्ये प्रवेश करू शकत नाही."</string>
@@ -595,6 +604,7 @@
     <string name="selectContact" msgid="781975788478987237">"संपर्क निवडा"</string>
     <string name="not_voice_capable" msgid="2739898841461577811">"व्‍हॉइस कॉलिंंग समर्थित नाही"</string>
     <string name="description_dial_button" msgid="7459705245418435351">"डायल करा"</string>
+    <string name="description_dialpad_button" msgid="5220006811894230590">"डायलपॅड दाखवा"</string>
     <string name="voicemail_visual_voicemail_switch_title" msgid="5012622186976275457">"दृश्‍यमान व्हॉइसमेल"</string>
     <string name="voicemail_set_pin_dialog_title" msgid="2797924461029093837">"पिन सेट करा"</string>
     <string name="voicemail_change_pin_dialog_title" msgid="6035421908626121564">"पिन बदला"</string>
@@ -645,58 +655,58 @@
     <string name="mobile_data_activate_button" msgid="3682400969184405446">"डेटा जोडा"</string>
     <string name="mobile_data_activate_cancel_button" msgid="1708022171547398765">"रद्द करा"</string>
     <string name="clh_card_title_call_ended_txt" msgid="4072101334811753823">"कॉल संपला"</string>
-    <string name="clh_callFailed_powerOff_txt" msgid="3773036949107147708">"रेडिओ बंद"</string>
-    <string name="clh_callFailed_simError_txt" msgid="757650590524277969">"सिम कार्ड नाही किंवा सिम कार्ड एरर"</string>
+    <string name="clh_callFailed_powerOff_txt" msgid="1049579267090569308">"विमान मोड चालू आहे"</string>
+    <string name="clh_callFailed_simError_txt" msgid="7273306159809203315">"सिम कार्ड अ‍ॅक्सेस करू शकत नाही"</string>
     <string name="clh_incall_error_out_of_service_txt" msgid="3974373603657193827">"मोबाइल नेटवर्क उपलब्ध नाही"</string>
-    <string name="clh_callFailed_unassigned_number_txt" msgid="7635996793232604064">"नियुक्त न केलेला (न दिलेला) नंबर"</string>
-    <string name="clh_callFailed_no_route_to_destination_txt" msgid="8561586745288855167">"गंतव्यस्थानासाठी कोणताही मार्ग नाही"</string>
-    <string name="clh_callFailed_channel_unacceptable_txt" msgid="8048626924246611459">"चॅनेल अस्वीकार्य"</string>
-    <string name="clh_callFailed_operator_determined_barring_txt" msgid="6889705714244076823">"ऑपरेटरने निर्धारित केलेला प्रतिबंध"</string>
-    <string name="clh_callFailed_normal_call_clearing_txt" msgid="2810975267106345820">"सामान्य कॉल क्लिअरिंग"</string>
+    <string name="clh_callFailed_unassigned_number_txt" msgid="4722164461846838251">"तुम्ही डायल करायचा प्रयत्न करत असलेल्या फोन नंबरमध्ये समस्या आहे. एरर कोड 1."</string>
+    <string name="clh_callFailed_no_route_to_destination_txt" msgid="2259464183880140671">"कॉल पूर्ण करता आला नाही. एरर कोड 3."</string>
+    <string name="clh_callFailed_channel_unacceptable_txt" msgid="3159336281525222855">"कॉल पूर्ण करता आला नाही. एरर कोड 6."</string>
+    <string name="clh_callFailed_operator_determined_barring_txt" msgid="1831977101604817389">"कॉल पूर्ण करता आला नाही. एरर कोड 8."</string>
+    <string name="clh_callFailed_normal_call_clearing_txt" msgid="7369313431310446847">"कॉल पूर्ण करता आला नाही. एरर कोड 16."</string>
     <string name="clh_callFailed_user_busy_txt" msgid="2736095995784746915">"वापरकर्ता व्यस्त"</string>
-    <string name="clh_callFailed_no_user_responding_txt" msgid="1421543095873040084">"वापरकर्ता प्रतिसाद देत नाही"</string>
-    <string name="clh_callFailed_user_alerting_txt" msgid="6606245970376797447">"वापरकर्त्यास सतर्क करत आहे, उत्तर नाही"</string>
+    <string name="clh_callFailed_no_user_responding_txt" msgid="3675206502567252162">"वापरकर्ता उत्तर देत नाही"</string>
+    <string name="clh_callFailed_user_alerting_txt" msgid="363445537769733281">"कॉल पूर्ण करता आला नाही. एरर कोड 19."</string>
     <string name="clh_callFailed_call_rejected_txt" msgid="8001665478195793223">"कॉल नाकारला"</string>
     <string name="clh_callFailed_number_changed_txt" msgid="5127909898925154242">"नंबर बदलला"</string>
-    <string name="clh_callFailed_pre_emption_txt" msgid="6864702416751338567">"पूर्वसंधी"</string>
-    <string name="clh_callFailed_non_selected_user_clearing_txt" msgid="8725898326616836656">"न निवडलेले वापरकर्ता क्लिअरिंग"</string>
-    <string name="clh_callFailed_destination_out_of_order_txt" msgid="6626355413556362437">"गंतव्यस्थान नादुरुस्त आहे"</string>
+    <string name="clh_callFailed_pre_emption_txt" msgid="1100414016302714854">"कॉल पूर्ण करता आला नाही. एरर कोड 25."</string>
+    <string name="clh_callFailed_non_selected_user_clearing_txt" msgid="6248192300127702626">"कॉल पूर्ण करता आला नाही. एरर कोड 26."</string>
+    <string name="clh_callFailed_destination_out_of_order_txt" msgid="4879936907430554772">"कॉल पूर्ण करता आला नाही. एरर कोड 27."</string>
     <string name="clh_callFailed_invalid_number_format_txt" msgid="6987646655639655370">"चुकीचा नंबर फॉरमॅट (अपूर्ण नंबर)"</string>
-    <string name="clh_callFailed_facility_rejected_txt" msgid="4539787567476563415">"सुविधा नाकारली"</string>
-    <string name="clh_callFailed_response_to_STATUS_ENQUIRY_txt" msgid="178503536263624366">"स्थिती चौकशीला प्रतिसाद"</string>
-    <string name="clh_callFailed_normal_unspecified_txt" msgid="2777574148560245427">"सामान्य, अनिर्दिष्ट"</string>
-    <string name="clh_callFailed_no_circuit_available_txt" msgid="2894749820848784700">"कोणतेही सर्किट/चॅनेल उपलब्ध नाही"</string>
-    <string name="clh_callFailed_network_out_of_order_txt" msgid="807472585030492179">"नेटवर्क नादुरुस्त आहे"</string>
-    <string name="clh_callFailed_temporary_failure_txt" msgid="1985847623937655151">"तात्पुरता बिघाड"</string>
-    <string name="clh_callFailed_switching_equipment_congestion_txt" msgid="465517139462928431">"स्विचिंग उपकरणामध्ये दाटी"</string>
-    <string name="clh_callFailed_access_information_discarded_txt" msgid="132851305339579892">"अॅक्सेस माहिती टाकून दिली"</string>
-    <string name="clh_callFailed_requested_circuit_txt" msgid="2316345471851443847">"विनंती केलेले सर्किट/चॅनेल उपलब्ध नाही"</string>
-    <string name="clh_callFailed_resources_unavailable_unspecified_txt" msgid="4460267429142724322">"संसाधने अनुपलब्ध, अनिर्दिष्ट"</string>
-    <string name="clh_callFailed_quality_of_service_unavailable_txt" msgid="7315823047206338755">"सेवेची गुणवत्ता अनुपलब्ध"</string>
-    <string name="clh_callFailed_requested_facility_not_subscribed_txt" msgid="1688438372518949530">"विनंती केलेल्या सुविधेचे सदस्यत्व घेतलेले नाही"</string>
-    <string name="clh_callFailed_incoming_calls_barred_within_the_CUG_txt" msgid="3922231620226043342">"येणारे कॉल CUG च्या आत प्रतिबंधित आहेत"</string>
-    <string name="clh_callFailed_bearer_capability_not_authorized_txt" msgid="6515594235334537340">"वाहक क्षमता अधिकृत नाही"</string>
-    <string name="clh_callFailed_bearer_capability_not_presently_available_txt" msgid="8013567156449692135">"वाहक क्षमता सध्या उपलब्ध नाही"</string>
-    <string name="clh_callFailed_service_or_option_not_available_unspecified_txt" msgid="8663374141880847414">"सेवा किंवा पर्याय उपलब्ध नाही, अनिर्दिष्ट"</string>
-    <string name="clh_callFailed_bearer_service_not_implemented_txt" msgid="2772484977847973583">"वाहक सेवा अमलात आणलेली नाही"</string>
-    <string name="clh_callFailed_ACM_equal_to_or_greater_than_ACMmax_txt" msgid="2192709279981159761">"ACMmax एवढे किंवा त्यापेक्षा मोठे ACM"</string>
-    <string name="clh_callFailed_requested_facility_not_implemented_txt" msgid="406404292085779118">"विनंती केलेली सुविधा अमलात आणलेली नाही"</string>
-    <string name="clh_callFailed_only_restricted_digital_information_bearer_capability_is_available_txt" msgid="4817899794531157207">"केवळ मर्यादित डिजिटल माहिती वाहक क्षमता उपलब्ध आहे"</string>
-    <string name="clh_callFailed_service_or_option_not_implemented_unspecified_txt" msgid="2968655784896862505">"सेवा किंवा पर्याय अमलात आणलेला नाही, अनिर्दिष्ट"</string>
-    <string name="clh_callFailed_invalid_transaction_identifier_value_txt" msgid="3843478518660918642">"चुकीचे व्यवहार आयडेंटिफायर मूल्य"</string>
-    <string name="clh_callFailed_user_not_member_of_CUG_txt" msgid="8462852903153938988">"वापरकर्ता CUG चा सदस्य नाही"</string>
-    <string name="clh_callFailed_incompatible_destination_txt" msgid="2580750652910253219">"विसंगत गंतव्यस्थान"</string>
-    <string name="clh_callFailed_invalid_transit_network_selection_txt" msgid="6589916900457111005">"चुकीची परिवहन नेटवर्क निवड"</string>
-    <string name="clh_callFailed_semantically_incorrect_message_txt" msgid="2329284157442218683">"शब्दार्थदृष्ट्या चुकीचा मेसेज"</string>
-    <string name="clh_callFailed_invalid_mandatory_information_txt" msgid="9081556111928912676">"चुकीची अनिवार्य माहिती"</string>
-    <string name="clh_callFailed_message_type_non_existent_or_not_implemented_txt" msgid="2641350895896546715">"मेसेज प्रकार अस्तित्वात नाही किंवा अमलात आणलेला नाही"</string>
-    <string name="clh_callFailed_message_type_not_compatible_with_protocol_state_txt" msgid="6598180735494982466">"मेसेज प्रकार प्रोटोकॉल स्थितीशी सुसंगत नाही"</string>
-    <string name="clh_callFailed_information_element_non_existent_or_not_implemented_txt" msgid="4725610801664706983">"माहिती घटक अस्तित्वात नाही किंवा अमलात आणलेला नाही"</string>
-    <string name="clh_callFailed_conditional_IE_error_txt" msgid="9140031076499566143">"सशर्त IE एरर"</string>
-    <string name="clh_callFailed_message_not_compatible_with_protocol_state_txt" msgid="6586005128633024271">"मेसेज प्रोटोकॉल स्थितीशी सुसंगत नाही"</string>
-    <string name="clh_callFailed_recovery_on_timer_expiry_txt" msgid="3680765722923600294">"टायमर एक्स्पायरीवर पुनर्प्राप्ती"</string>
-    <string name="clh_callFailed_protocol_Error_unspecified_txt" msgid="8294907817156524790">"प्रोटोकॉल एरर, अनिर्दिष्ट"</string>
-    <string name="clh_callFailed_interworking_unspecified_txt" msgid="8838850798491763729">"अंतर्गत कार्य, अनिर्दिष्ट"</string>
+    <string name="clh_callFailed_facility_rejected_txt" msgid="1028912823639389563">"कॉल पूर्ण करता आला नाही. एरर कोड 29."</string>
+    <string name="clh_callFailed_response_to_STATUS_ENQUIRY_txt" msgid="1250833944238081212">"कॉल पूर्ण करता आला नाही. एरर कोड 30."</string>
+    <string name="clh_callFailed_normal_unspecified_txt" msgid="8765640093649364786">"कॉल पूर्ण करता आला नाही. एरर कोड 31."</string>
+    <string name="clh_callFailed_no_circuit_available_txt" msgid="6884477141997665736">"कॉल पूर्ण करता आला नाही. एरर कोड 34."</string>
+    <string name="clh_callFailed_network_out_of_order_txt" msgid="76447023032000125">"कॉल पूर्ण करता आला नाही. एरर कोड 38."</string>
+    <string name="clh_callFailed_temporary_failure_txt" msgid="5057716306945664356">"कॉल पूर्ण करता आला नाही. एरर कोड 41."</string>
+    <string name="clh_callFailed_switching_equipment_congestion_txt" msgid="4958831706265227632">"कॉल पूर्ण करता आला नाही. एरर कोड 42."</string>
+    <string name="clh_callFailed_access_information_discarded_txt" msgid="5033636666434831179">"कॉल पूर्ण करता आला नाही. एरर कोड 43."</string>
+    <string name="clh_callFailed_requested_circuit_txt" msgid="3221429183862933558">"कॉल पूर्ण करता आला नाही. एरर कोड 44."</string>
+    <string name="clh_callFailed_resources_unavailable_unspecified_txt" msgid="1385943395137055442">"कॉल पूर्ण करता आला नाही. एरर कोड 47."</string>
+    <string name="clh_callFailed_quality_of_service_unavailable_txt" msgid="8464132603057397297">"कॉल पूर्ण करता आला नाही. एरर कोड 49."</string>
+    <string name="clh_callFailed_requested_facility_not_subscribed_txt" msgid="3853815238079666882">"कॉल पूर्ण करता आला नाही. एरर कोड 50."</string>
+    <string name="clh_callFailed_incoming_calls_barred_within_the_CUG_txt" msgid="6791665425652545510">"कॉल पूर्ण करता आला नाही. एरर कोड 55."</string>
+    <string name="clh_callFailed_bearer_capability_not_authorized_txt" msgid="2975453855928450909">"कॉल पूर्ण करता आला नाही. एरर कोड 57."</string>
+    <string name="clh_callFailed_bearer_capability_not_presently_available_txt" msgid="753763978405557873">"कॉल पूर्ण करता आला नाही. एरर कोड 58."</string>
+    <string name="clh_callFailed_service_or_option_not_available_unspecified_txt" msgid="1714515856150546668">"कॉल पूर्ण करता आला नाही. एरर कोड 63."</string>
+    <string name="clh_callFailed_bearer_service_not_implemented_txt" msgid="5433179845809692163">"कॉल पूर्ण करता आला नाही. एरर कोड 65."</string>
+    <string name="clh_callFailed_ACM_equal_to_or_greater_than_ACMmax_txt" msgid="4339523227014428123">"कॉल पूर्ण करता आला नाही. एरर कोड 68."</string>
+    <string name="clh_callFailed_requested_facility_not_implemented_txt" msgid="5217500914101821728">"कॉल पूर्ण करता आला नाही. एरर कोड 69."</string>
+    <string name="clh_callFailed_only_restricted_digital_information_bearer_capability_is_available_txt" msgid="2423146296631060723">"कॉल पूर्ण करता आला नाही. एरर कोड 70."</string>
+    <string name="clh_callFailed_service_or_option_not_implemented_unspecified_txt" msgid="873208782556277597">"कॉल पूर्ण करता आला नाही. एरर कोड 79."</string>
+    <string name="clh_callFailed_invalid_transaction_identifier_value_txt" msgid="3926779129494281620">"कॉल पूर्ण करता आला नाही. एरर कोड 81."</string>
+    <string name="clh_callFailed_user_not_member_of_CUG_txt" msgid="2517559636224367413">"कॉल पूर्ण करता आला नाही. एरर कोड 87."</string>
+    <string name="clh_callFailed_incompatible_destination_txt" msgid="7994154962189949306">"कॉल पूर्ण करता आला नाही. एरर कोड 88."</string>
+    <string name="clh_callFailed_invalid_transit_network_selection_txt" msgid="5847046471813330674">"कॉल पूर्ण करता आला नाही. एरर कोड 91."</string>
+    <string name="clh_callFailed_semantically_incorrect_message_txt" msgid="5419940790658960361">"कॉल पूर्ण करता आला नाही. एरर कोड 95."</string>
+    <string name="clh_callFailed_invalid_mandatory_information_txt" msgid="3350178645665420102">"कॉल पूर्ण करता आला नाही. एरर कोड 96."</string>
+    <string name="clh_callFailed_message_type_non_existent_or_not_implemented_txt" msgid="7080310506268713895">"कॉल पूर्ण करता आला नाही. एरर कोड 97."</string>
+    <string name="clh_callFailed_message_type_not_compatible_with_protocol_state_txt" msgid="5251558113020693277">"कॉल पूर्ण करता आला नाही. एरर कोड 98."</string>
+    <string name="clh_callFailed_information_element_non_existent_or_not_implemented_txt" msgid="1643642065908165846">"कॉल पूर्ण करता आला नाही. एरर कोड 99."</string>
+    <string name="clh_callFailed_conditional_IE_error_txt" msgid="1622467860490603665">"कॉल पूर्ण करता आला नाही. एरर कोड १००."</string>
+    <string name="clh_callFailed_message_not_compatible_with_protocol_state_txt" msgid="3776039646804248109">"कॉल पूर्ण करता आला नाही. एरर कोड १०१."</string>
+    <string name="clh_callFailed_recovery_on_timer_expiry_txt" msgid="4529313282997136028">"कॉल पूर्ण करता आला नाही. एरर कोड १०२."</string>
+    <string name="clh_callFailed_protocol_Error_unspecified_txt" msgid="4900075501687505296">"कॉल पूर्ण करता आला नाही. एरर कोड १११."</string>
+    <string name="clh_callFailed_interworking_unspecified_txt" msgid="6701560054199411045">"कॉल पूर्ण करता आला नाही. एरर कोड १२७."</string>
     <string name="labelCallBarring" msgid="3452870940716226978">"कॉल बारिंग"</string>
     <string name="sum_call_barring_enabled" msgid="6804489690436703488">"चालू"</string>
     <string name="sum_call_barring_disabled" msgid="5900772179198857783">"बंद"</string>
