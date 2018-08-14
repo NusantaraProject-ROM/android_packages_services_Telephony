@@ -32,6 +32,8 @@ import com.android.internal.telephony.CallForwardInfo;
 import com.android.internal.telephony.CommandsInterface;
 import com.android.internal.telephony.Phone;
 
+import java.util.ArrayList;
+
 public class GsmUmtsCallForwardOptions extends TimeConsumingPreferenceActivity
     implements DialogInterface.OnClickListener, DialogInterface.OnCancelListener {
     private static final String LOG_TAG = "GsmUmtsCallForwardOptions";

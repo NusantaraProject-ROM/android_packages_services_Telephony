@@ -63,27 +63,13 @@ public class GsmUmtsAdditionalCallOptions extends TimeConsumingPreferenceActivit
                     CarrierConfigManager.KEY_ADDITIONAL_SETTINGS_CALL_WAITING_VISIBILITY_BOOL);
         }
 
-
-        if (icicle == null) {
-            if (DBG) Log.d(LOG_TAG, "start to init ");
-            if (isUtEnabledToDisableClir()) {
-                mCLIRButton.setSummary(R.string.sum_default_caller_id);
-                mCWButton.init(this, false, mPhone);
-
         if (mCLIRButton != null) {
             if (mShowCLIRButton) {
                 mPreferences.add(mCLIRButton);
 
             } else {
-                mCLIRButton.init(this, false, mPhone);
                 prefSet.removePreference(mCLIRButton);
             }
-        } else {
-            if (DBG) Log.d(LOG_TAG, "restore stored states");
-            mInitIndex = mPreferences.size();
-            if (isUtEnabledToDisableClir()) {
-                mCLIRButton.setSummary(R.string.sum_default_caller_id);
-                mCWButton.init(this, true, mPhone);
         }
 
         if (mCWButton != null) {
@@ -105,7 +91,12 @@ public class GsmUmtsAdditionalCallOptions extends TimeConsumingPreferenceActivit
                     mCWButton.init(this, true, mPhone);
                 }
                 if (mShowCLIRButton) {
-                    mCLIRButton.init(this, true, mPhone);
+                    if (isUtEnabledToDisableClir()) {
+                        mCLIRButton.setSummary(R.string.sum_default_caller_id);
+                        mCWButton.init(this, true, mPhone);
+                    } else {
+                        mCLIRButton.init(this, true, mPhone);
+                    }
                     int[] clirArray = icicle.getIntArray(mCLIRButton.getKey());
                     if (clirArray != null) {
                         if (DBG) {
@@ -114,8 +105,14 @@ public class GsmUmtsAdditionalCallOptions extends TimeConsumingPreferenceActivit
                         }
                         mCLIRButton.handleGetCLIRResult(clirArray);
                     } else {
-                        mCLIRButton.init(this, false, mPhone);
+                        if (isUtEnabledToDisableClir()) {
+                            mCLIRButton.setSummary(R.string.sum_default_caller_id);
+                            mCWButton.init(this, false, mPhone);
+                        } else {
+                            mCLIRButton.init(this, false, mPhone);
+                        }
                     }
+                }
             }
         }
 
