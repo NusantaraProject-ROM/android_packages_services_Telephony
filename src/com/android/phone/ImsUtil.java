@@ -62,10 +62,10 @@ public class ImsUtil {
         final ImsManager imsManager = ImsManager.getInstance(context, phoneId);
         boolean isEnabledByPlatform = imsManager.isWfcEnabledByPlatform();
         boolean isEnabledByUser = imsManager.isWfcEnabledByUser();
-        if (DBG) Log.d(LOG_TAG, "isWfcEnabled :: isEnabledByPlatform = " + isEnabledByPlatform
-                + " phoneId = " + phoneId);
-        if (DBG) Log.d(LOG_TAG, "isWfcEnabled :: isEnabledByUser = " + isEnabledByUser
-                + " phoneId = " + phoneId);
+        if (DBG) Log.d(LOG_TAG, "isWfcEnabled :: isEnabledByPlatform=" + isEnabledByPlatform
+                + " phoneId=" + phoneId);
+        if (DBG) Log.d(LOG_TAG, "isWfcEnabled :: isEnabledByUser=" + isEnabledByUser
+                + " phoneId=" + phoneId);
         return isEnabledByPlatform && isEnabledByUser;
     }
 
@@ -85,8 +85,8 @@ public class ImsUtil {
         final ImsManager imsManager = ImsManager.getInstance(context, phoneId);
         boolean isWifiOnlyMode =
                 imsManager.getWfcMode() == ImsConfig.WfcModeFeatureValueConstants.WIFI_ONLY;
-        if (DBG) Log.d(LOG_TAG, "isWfcModeWifiOnly :: isWifiOnlyMode " + isWifiOnlyMode
-                + " phoneId = " + phoneId);
+        if (DBG) Log.d(LOG_TAG, "isWfcModeWifiOnly :: isWifiOnlyMode" + isWifiOnlyMode
+                + " phoneId=" + phoneId);
         return isWfcEnabled(context, phoneId) && isWifiOnlyMode;
     }
 
@@ -113,7 +113,7 @@ public class ImsUtil {
     public static boolean shouldPromoteWfc(Context context, int phoneId) {
         CarrierConfigManager cfgManager = (CarrierConfigManager) context
                 .getSystemService(Context.CARRIER_CONFIG_SERVICE);
-        if (cfgManager == null || !cfgManager.getConfigForSubId(getSubId(phoneId))
+        if (cfgManager == null || cfgManager.getConfigForSubId(getSubId(phoneId))
                 .getBoolean(CarrierConfigManager.KEY_CARRIER_PROMOTE_WFC_ON_CALL_FAIL_BOOL)) {
             return false;
         }
@@ -141,7 +141,6 @@ public class ImsUtil {
         if (subIds != null && subIds.length >= 1) {
             subId = subIds[0];
         }
-
         return subId;
     }
 }

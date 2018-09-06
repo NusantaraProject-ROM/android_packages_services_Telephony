@@ -80,14 +80,14 @@ public class DisconnectCauseUtil {
                 reason, SubscriptionManager.getDefaultVoicePhoneId());
     }
 
-   /**
-    * Converts from a disconnect code in {@link android.telephony.DisconnectCause} into a more
-    * generic {@link android.telecom.DisconnectCause}.object, possibly populated with a localized
-    * message and tone for Slot.
-    *
-    * @param telephonyDisconnectCause The code for the reason for the disconnect.
-    * @param phoneId To support localized message based on phoneId
-    */
+    /**
+     * Converts from a disconnect code in {@link android.telephony.DisconnectCause} into a more
+     * generic {@link android.telecom.DisconnectCause}.object, possibly populated with a localized
+     * message and tone for Slot.
+     *
+     * @param telephonyDisconnectCause The code for the reason for the disconnect.
+     * @param phoneId To support localized message based on phoneId
+     */
     public static DisconnectCause toTelecomDisconnectCause(int telephonyDisconnectCause,
             String reason, int phoneId) {
         return toTelecomDisconnectCause(telephonyDisconnectCause, CallFailCause.NOT_VALID,
