@@ -246,8 +246,13 @@ public class CdmaCallOptions extends TimeConsumingPreferenceActivity
                                 Intent intent = mPhone.isUtEnabled() ?
                                     subInfoHelper.getIntent(GsmUmtsCallForwardOptions.class)
                                     : new Intent(CALL_FORWARD_INTENT);
-                                intent.putExtra(PhoneUtils.SERVICE_CLASS,
-                                    CommandsInterface.SERVICE_CLASS_VOICE);
+                                if (mPhone.isUtEnabled()) {
+                                    intent.putExtra(PhoneUtils.SERVICE_CLASS,
+                                        CommandsInterface.SERVICE_CLASS_VOICE);
+                                } else {
+                                    intent.putExtra(PhoneConstants.SUBSCRIPTION_KEY,
+                                        mPhone.getSubId());
+                                }
                                 startActivity(intent);
                                 return true;
                             }
