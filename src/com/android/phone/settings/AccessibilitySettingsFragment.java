@@ -57,14 +57,16 @@ public class AccessibilitySettingsFragment extends PreferenceFragment {
             if (DBG) Log.d(LOG_TAG, "PhoneStateListener.onCallStateChanged: state=" + state);
             Preference pref = getPreferenceScreen().findPreference(BUTTON_TTY_KEY);
             if (pref != null) {
-                // Use TelephonyManager#getCallStete instead of 'state' parameter because
+                // Use TelephonyManager#getCallState instead of 'state' parameter because
                 // needs to check the current state of all phone calls to
                 // support multi sim configuration.
                 TelephonyManager telephonyManager =
                         (TelephonyManager) mContext.getSystemService(Context.TELEPHONY_SERVICE);
-                final boolean isVolteTtySupported = ImsManager.isVolteEnabledByPlatform(mContext)
-                        && getVolteTtySupported();
-                pref.setEnabled((isVolteTtySupported && !isVideoCallOrConferenceInProgress()) ||
+                final boolean isVolteTtySupported = getVolteTtySupported();
+                final boolean isVolteCurrentlyEnabled =
+                        ImsManager.isVolteEnabledByPlatform(mContext);
+                pref.setEnabled((isVolteTtySupported && isVolteCurrentlyEnabled &&
+                        !isVideoCallOrConferenceInProgress()) ||
                         (telephonyManager.getCallState() == TelephonyManager.CALL_STATE_IDLE));
             }
         }

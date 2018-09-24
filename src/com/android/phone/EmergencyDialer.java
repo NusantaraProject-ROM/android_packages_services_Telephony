@@ -23,24 +23,29 @@ import android.animation.AnimatorListenerAdapter;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.app.Dialog;
+import android.app.KeyguardManager;
 import android.app.WallpaperManager;
 import android.content.BroadcastReceiver;
-import android.content.ContentResolver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
-import android.database.ContentObserver;
-import android.database.Cursor;
+import android.database.DataSetObserver;
 import android.graphics.Color;
 import android.graphics.Point;
+import android.hardware.Sensor;
+import android.hardware.SensorEvent;
+import android.hardware.SensorEventListener;
+import android.hardware.SensorManager;
 import android.media.AudioManager;
 import android.media.ToneGenerator;
+import android.metrics.LogMaker;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
-import android.os.Handler;
 import android.os.PersistableBundle;
+import android.os.SystemClock;
 import android.provider.Settings;
+import android.telecom.ParcelableCallAnalytics;
 import android.telecom.PhoneAccount;
 import android.telecom.TelecomManager;
 import android.telephony.CarrierConfigManager;
@@ -57,6 +62,7 @@ import android.text.TextUtils;
 import android.text.TextWatcher;
 import android.text.method.DialerKeyListener;
 import android.text.style.TtsSpan;
+import android.util.FeatureFlagUtils;
 import android.util.Log;
 import android.util.TypedValue;
 import android.view.HapticFeedbackConstants;
@@ -64,19 +70,27 @@ import android.view.KeyEvent;
 import android.view.MenuItem;
 import android.view.MotionEvent;
 import android.view.View;
+import android.view.View.AccessibilityDelegate;
 import android.view.ViewGroup;
 import android.view.WindowManager;
+import android.view.accessibility.AccessibilityEvent;
 import android.widget.TextView;
 
 import com.android.internal.colorextraction.ColorExtractor;
 import com.android.internal.colorextraction.ColorExtractor.GradientColors;
 import com.android.internal.colorextraction.drawable.GradientDrawable;
+import com.android.internal.logging.MetricsLogger;
+import com.android.internal.logging.nano.MetricsProto.MetricsEvent;
 import com.android.phone.common.dialpad.DialpadKeyButton;
 import com.android.phone.common.util.ViewUtil;
 import com.android.phone.common.widget.ResizingTextEditText;
+import com.android.phone.ecc.CountryEccInfo;
+import com.android.phone.ecc.EccInfoHelper;
+import com.android.phone.ecc.IsoToEccProtobufRepository;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 
 /**
  * EmergencyDialer is a special dialer that is used ONLY for dialing emergency calls.
@@ -104,12 +118,80 @@ import java.util.List;
 public class EmergencyDialer extends Activity implements View.OnClickListener,
         View.OnLongClickListener, View.OnKeyListener, TextWatcher,
         DialpadKeyButton.OnPressedListener, ColorExtractor.OnColorsChangedListener,
-        EmergencyShortcutButton.OnConfirmClickListener {
+        EmergencyShortcutButton.OnConfirmClickListener, SensorEventListener {
+
+    private class MetricsWriter {
+        // Metrics constants indicating the entry type that user opened emergency dialer.
+        // This info is sent from system UI with EXTRA_ENTRY_TYPE. Please make them being
+        // in sync with those in com.android.systemui.util.EmergencyDialerConstants.
+        public static final int ENTRY_TYPE_UNKNOWN = 0;
+        public static final int ENTRY_TYPE_LOCKSCREEN_BUTTON = 1;
+        public static final int ENTRY_TYPE_POWER_MENU = 2;
+
+        // Metrics constants indicating the UI that user made phone call.
+        public static final int CALL_SOURCE_DIALPAD = 0;
+        public static final int CALL_SOURCE_SHORTCUT = 1;
+
+        // Metrics constants indicating the phone number type of a call user made.
+        public static final int PHONE_NUMBER_TYPE_GENERAL = 0;
+        public static final int PHONE_NUMBER_TYPE_EMERGENCY = 1;
+
+        // Metrics constants indicating the actions performed by user.
+        public static final int USER_ACTION_NONE = 0x0;
+        public static final int USER_ACTION_OPEN_DIALPAD = 0x1;
+        public static final int USER_ACTION_OPEN_EMERGENCY_INFO = 0x2;
+        public static final int USER_ACTION_MAKE_CALL_VIA_DIALPAD = 0x4;
+        public static final int USER_ACTION_MAKE_CALL_VIA_SHORTCUT = 0x8;
+
+        private MetricsLogger mMetricsLogger = new MetricsLogger();
+
+        public void writeMetricsForEnter() {
+            int entryType = getIntent().getIntExtra(EXTRA_ENTRY_TYPE, ENTRY_TYPE_UNKNOWN);
+            KeyguardManager keyguard = (KeyguardManager) getSystemService(Context.KEYGUARD_SERVICE);
+            mMetricsLogger.write(new LogMaker(MetricsEvent.EMERGENCY_DIALER)
+                    .setType(MetricsEvent.TYPE_OPEN)
+                    .setSubtype(entryType)
+                    .addTaggedData(MetricsEvent.FIELD_EMERGENCY_DIALER_IS_SCREEN_LOCKED,
+                            keyguard.isKeyguardLocked() ? 1 : 0));
+        }
+
+        public void writeMetricsForExit() {
+            int entryType = getIntent().getIntExtra(EXTRA_ENTRY_TYPE, ENTRY_TYPE_UNKNOWN);
+            long userStayDuration = SystemClock.elapsedRealtime() - mUserEnterTimeMillis;
+            mMetricsLogger.write(new LogMaker(MetricsEvent.EMERGENCY_DIALER)
+                    .setType(MetricsEvent.TYPE_CLOSE)
+                    .setSubtype(entryType)
+                    .addTaggedData(MetricsEvent.FIELD_EMERGENCY_DIALER_USER_ACTIONS, mUserActions)
+                    .addTaggedData(
+                            MetricsEvent.FIELD_EMERGENCY_DIALER_DURATION_MS, userStayDuration));
+        }
+
+        public void writeMetricsForMakingCall(int callSource, int phoneNumberType,
+                boolean hasShortcut) {
+            mMetricsLogger.write(new LogMaker(MetricsEvent.EMERGENCY_DIALER_MAKE_CALL)
+                    .setType(MetricsEvent.TYPE_ACTION)
+                    .setSubtype(callSource)
+                    .addTaggedData(MetricsEvent.FIELD_EMERGENCY_DIALER_PHONE_NUMBER_TYPE,
+                            phoneNumberType)
+                    .addTaggedData(MetricsEvent.FIELD_EMERGENCY_DIALER_PHONE_NUMBER_HAS_SHORTCUT,
+                            hasShortcut ? 1 : 0)
+                    .addTaggedData(MetricsEvent.FIELD_EMERGENCY_DIALER_IN_POCKET,
+                            mIsProximityNear ? 1 : 0));
+        }
+    }
+
     // Keys used with onSaveInstanceState().
     private static final String LAST_NUMBER = "lastNumber";
 
     // Intent action for this activity.
     public static final String ACTION_DIAL = "com.android.phone.EmergencyDialer.DIAL";
+
+    /**
+     * Extra included in {@link #ACTION_DIAL} to indicate the entry type that user starts
+     * the emergency dialer.
+     */
+    public static final String EXTRA_ENTRY_TYPE =
+            "com.android.phone.EmergencyDialer.extra.ENTRY_TYPE";
 
     // List of dialer button IDs.
     private static final int[] DIALER_KEYS = new int[] {
@@ -139,13 +221,20 @@ public class EmergencyDialer extends Activity implements View.OnClickListener,
     /** 85% opacity for black background **/
     private static final int BLACK_BACKGROUND_GRADIENT_ALPHA = 217;
 
+    /** Size limit of emergency shortcut buttons container. **/
+    private static final int SHORTCUT_SIZE_LIMIT = 3;
+
     ResizingTextEditText mDigits;
     private View mDialButton;
     private View mDelete;
     private View mEmergencyShortcutView;
     private View mDialpadView;
 
+    private EccInfoHelper mEccInfoHelper;
+
     private List<EmergencyShortcutButton> mEmergencyShortcutButtonList;
+    private EccShortcutAdapter mShortcutAdapter;
+    private DataSetObserver mShortcutDataSetObserver = null;
 
     private ToneGenerator mToneGenerator;
     private Object mToneGeneratorLock = new Object();
@@ -165,6 +254,30 @@ public class EmergencyDialer extends Activity implements View.OnClickListener,
         }
     };
 
+    /**
+     * Customize accessibility methods in View.
+     */
+    private AccessibilityDelegate mAccessibilityDelegate = new AccessibilityDelegate() {
+
+        /**
+         * Stop AccessiblityService from reading the title of a hidden View.
+         *
+         * <p>The crossfade animation will set the visibility of fade out view to {@link View.GONE}
+         * in the animation end. The view with an accessibility pane title would call the
+         * {@link AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED} event, which would trigger the
+         * accessibility service to read the pane title of fade out view instead of pane title of
+         * fade in view. So it need to filter out the event called by vanished pane.
+         */
+        @Override
+        public void onPopulateAccessibilityEvent(View host, AccessibilityEvent event) {
+            if (event.getEventType() == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED
+                    && host.getVisibility() == View.GONE) {
+                return;
+            }
+            super.onPopulateAccessibilityEvent(host, event);
+        }
+    };
+
     private String mLastNumber; // last number we tried to dial. Used to restore error dialog.
 
     // Background gradient
@@ -177,24 +290,21 @@ public class EmergencyDialer extends Activity implements View.OnClickListener,
 
     private boolean mAreEmergencyDialerShortcutsEnabled;
 
-    /** Key of emergency information user name */
-    private static final String KEY_EMERGENCY_INFO_NAME = "name";
+    private MetricsWriter mMetricsWriter;
+    private SensorManager mSensorManager;
+    private Sensor mProximitySensor;
+    private boolean mIsProximityNear = false;
 
-    /** Authority of emergency information */
-    private static final String AUTHORITY = "com.android.emergency.info.name";
+    /**
+     * The time, in millis, since boot when user opened emergency dialer.
+     * This is used when calculating the user stay duration for metrics data.
+     */
+    private long mUserEnterTimeMillis = 0;
 
-    /** Content path of emergency information name */
-    private static final String CONTENT_PATH = "name";
-
-    /** Content URI of emergency information */
-    private static final Uri CONTENT_URI = new Uri.Builder()
-            .scheme(ContentResolver.SCHEME_CONTENT)
-            .authority(AUTHORITY)
-            .path(CONTENT_PATH)
-            .build();
-
-    /** ContentObserver for monitoring emergency info name changes */
-    private ContentObserver mEmergencyInfoNameObserver;
+    /**
+     * Bit flag indicating the actions performed by user. This is used for metrics data.
+     */
+    private int mUserActions = MetricsWriter.USER_ACTION_NONE;
 
     @Override
     public void beforeTextChanged(CharSequence s, int start, int count, int after) {
@@ -230,13 +340,21 @@ public class EmergencyDialer extends Activity implements View.OnClickListener,
     protected void onCreate(Bundle icicle) {
         super.onCreate(icicle);
 
+        mMetricsWriter = new MetricsWriter();
+        mSensorManager = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
+        if (mSensorManager != null) {
+            mProximitySensor = mSensorManager.getDefaultSensor(Sensor.TYPE_PROXIMITY);
+        }
+
         // Allow this activity to be displayed in front of the keyguard / lockscreen.
         setShowWhenLocked(true);
         // Allow turning screen on
         setTurnScreenOn(true);
 
-        mAreEmergencyDialerShortcutsEnabled = Settings.Global.getInt(getContentResolver(),
-                Settings.Global.FASTER_EMERGENCY_PHONE_CALL_ENABLED, 0) != 0;
+        mAreEmergencyDialerShortcutsEnabled = FeatureFlagUtils
+                .isEnabled(this, FeatureFlagUtils.EMERGENCY_DIAL_SHORTCUTS);
+        Log.d(LOG_TAG, "Enable emergency dialer shortcut: "
+                + mAreEmergencyDialerShortcutsEnabled);
 
         mColorExtractor = new ColorExtractor(this);
 
@@ -334,6 +452,7 @@ public class EmergencyDialer extends Activity implements View.OnClickListener,
         mEmergencyActionGroup = (EmergencyActionGroup) findViewById(R.id.emergency_action_group);
 
         if (mAreEmergencyDialerShortcutsEnabled) {
+            mEccInfoHelper = new EccInfoHelper(new IsoToEccProtobufRepository());
             setupEmergencyShortcutsView();
         }
     }
@@ -348,9 +467,9 @@ public class EmergencyDialer extends Activity implements View.OnClickListener,
             }
         }
         unregisterReceiver(mBroadcastReceiver);
-        if (mEmergencyInfoNameObserver != null) {
-            getContentResolver().unregisterContentObserver(mEmergencyInfoNameObserver);
-            mEmergencyInfoNameObserver = null;
+        if (mShortcutAdapter != null && mShortcutDataSetObserver != null) {
+            mShortcutAdapter.unregisterDataSetObserver(mShortcutDataSetObserver);
+            mShortcutDataSetObserver = null;
         }
     }
 
@@ -465,12 +584,22 @@ public class EmergencyDialer extends Activity implements View.OnClickListener,
     public void onConfirmClick(EmergencyShortcutButton button) {
         if (button == null) return;
 
+        mUserActions |= MetricsWriter.USER_ACTION_MAKE_CALL_VIA_SHORTCUT;
+
+        // We interest on the context when user has intention to make phone call,
+        // so write metrics here for shortcut number even the call may not be created.
+        mMetricsWriter.writeMetricsForMakingCall(MetricsWriter.CALL_SOURCE_SHORTCUT,
+                MetricsWriter.PHONE_NUMBER_TYPE_EMERGENCY, true);
+
         String phoneNumber = button.getPhoneNumber();
 
         if (!TextUtils.isEmpty(phoneNumber)) {
             if (DBG) Log.d(LOG_TAG, "dial emergency number: " + Rlog.pii(LOG_TAG, phoneNumber));
+            Bundle extras = new Bundle();
+            extras.putInt(TelecomManager.EXTRA_CALL_SOURCE,
+                    ParcelableCallAnalytics.CALL_SOURCE_EMERGENCY_SHORTCUT);
             TelecomManager tm = (TelecomManager) getSystemService(TELECOM_SERVICE);
-            tm.placeCall(Uri.fromParts(PhoneAccount.SCHEME_TEL, phoneNumber, null), null);
+            tm.placeCall(Uri.fromParts(PhoneAccount.SCHEME_TEL, phoneNumber, null), extras);
         } else {
             Log.d(LOG_TAG, "emergency number is empty");
         }
@@ -495,11 +624,13 @@ public class EmergencyDialer extends Activity implements View.OnClickListener,
                 return;
             }
             case R.id.floating_action_button_dialpad: {
+                mUserActions |= MetricsWriter.USER_ACTION_OPEN_DIALPAD;
                 mDigits.getText().clear();
                 switchView(mDialpadView, mEmergencyShortcutView, true);
                 return;
             }
             case R.id.emergency_info_button: {
+                mUserActions |= MetricsWriter.USER_ACTION_OPEN_EMERGENCY_INFO;
                 Intent intent = (Intent) view.getTag(R.id.tag_intent);
                 if (intent != null) {
                     startActivity(intent);
@@ -601,6 +732,11 @@ public class EmergencyDialer extends Activity implements View.OnClickListener,
     @Override
     protected void onStart() {
         super.onStart();
+
+        mUserEnterTimeMillis = SystemClock.elapsedRealtime();
+        mUserActions = MetricsWriter.USER_ACTION_NONE;
+        mMetricsWriter.writeMetricsForEnter();
+
         // It does not support dark text theme, when emergency dialer shortcuts are enabled.
         // And set background color to black.
         if (mAreEmergencyDialerShortcutsEnabled) {
@@ -614,11 +750,42 @@ public class EmergencyDialer extends Activity implements View.OnClickListener,
             mBackgroundGradient.setColors(lockScreenColors, false);
             updateTheme(lockScreenColors.supportsDarkText());
         }
+
+        if (mAreEmergencyDialerShortcutsEnabled && mEccInfoHelper != null) {
+            final Context context = this;
+            mEccInfoHelper.getCountryEccInfoAsync(context,
+                    new EccInfoHelper.CountryEccInfoResultCallback() {
+                        @Override
+                        public void onSuccess(String iso, CountryEccInfo countryEccInfo) {
+                            Log.d(LOG_TAG, "Retrieve ECC info success, country ISO: "
+                                    + Rlog.pii(LOG_TAG, iso));
+                            updateLocationAndEccInfo(iso, countryEccInfo);
+                        }
+
+                        @Override
+                        public void onDetectCountryFailed() {
+                            Log.w(LOG_TAG, "Cannot detect current country.");
+                            updateLocationAndEccInfo(null, null);
+                        }
+
+                        @Override
+                        public void onRetrieveCountryEccInfoFailed(String iso) {
+                            Log.w(LOG_TAG, "Retrieve ECC info failed, country ISO: "
+                                    + Rlog.pii(LOG_TAG, iso));
+                            updateLocationAndEccInfo(iso, null);
+                        }
+                    });
+        }
     }
 
     @Override
     protected void onResume() {
         super.onResume();
+
+        if (mProximitySensor != null) {
+            mSensorManager.registerListener(
+                    this, mProximitySensor, SensorManager.SENSOR_DELAY_NORMAL);
+        }
 
         // retrieve the DTMF tone play back setting.
         mDTMFToneEnabled = Settings.System.getInt(getContentResolver(),
@@ -644,11 +811,15 @@ public class EmergencyDialer extends Activity implements View.OnClickListener,
     @Override
     public void onPause() {
         super.onPause();
+        if (mProximitySensor != null) {
+            mSensorManager.unregisterListener(this, mProximitySensor);
+        }
     }
 
     @Override
     protected void onStop() {
         super.onStop();
+        mMetricsWriter.writeMetricsForExit();
         mColorExtractor.removeOnColorsChangedListener(this);
     }
 
@@ -686,6 +857,7 @@ public class EmergencyDialer extends Activity implements View.OnClickListener,
      * place the call, but check to make sure it is a viable number.
      */
     private void placeCall() {
+        mUserActions |= MetricsWriter.USER_ACTION_MAKE_CALL_VIA_DIALPAD;
         mLastNumber = mDigits.getText().toString();
 
         // Convert into emergency number according to emergency conversion map.
@@ -702,10 +874,22 @@ public class EmergencyDialer extends Activity implements View.OnClickListener,
                 playTone(ToneGenerator.TONE_PROP_NACK);
                 return;
             }
+
+            mMetricsWriter.writeMetricsForMakingCall(MetricsWriter.CALL_SOURCE_DIALPAD,
+                    MetricsWriter.PHONE_NUMBER_TYPE_EMERGENCY, isShortcutNumber(mLastNumber));
+
+            Bundle extras = new Bundle();
+            extras.putInt(TelecomManager.EXTRA_CALL_SOURCE,
+                    ParcelableCallAnalytics.CALL_SOURCE_EMERGENCY_DIALPAD);
             TelecomManager tm = (TelecomManager) getSystemService(TELECOM_SERVICE);
-            tm.placeCall(Uri.fromParts(PhoneAccount.SCHEME_TEL, mLastNumber, null), null);
+            tm.placeCall(Uri.fromParts(PhoneAccount.SCHEME_TEL, mLastNumber, null), extras);
         } else {
             if (DBG) Log.d(LOG_TAG, "rejecting bad requested number " + mLastNumber);
+
+            // We interest on the context when user has intention to make phone call,
+            // so write metrics here for non-emergency numbers even these numbers are rejected.
+            mMetricsWriter.writeMetricsForMakingCall(MetricsWriter.CALL_SOURCE_DIALPAD,
+                    MetricsWriter.PHONE_NUMBER_TYPE_GENERAL, false);
 
             showDialog(BAD_EMERGENCY_NUMBER_DIALOG);
         }
@@ -909,6 +1093,9 @@ public class EmergencyDialer extends Activity implements View.OnClickListener,
         mEmergencyShortcutView = findViewById(R.id.emergency_dialer_shortcuts);
         mDialpadView = findViewById(R.id.emergency_dialer);
 
+        mEmergencyShortcutView.setAccessibilityDelegate(mAccessibilityDelegate);
+        mDialpadView.setAccessibilityDelegate(mAccessibilityDelegate);
+
         final View dialpadButton = findViewById(R.id.floating_action_button_dialpad);
         dialpadButton.setOnClickListener(this);
 
@@ -922,66 +1109,94 @@ public class EmergencyDialer extends Activity implements View.OnClickListener,
         final View emergencyDialpadTitle = findViewById(R.id.emergency_dialpad_title_container);
         emergencyDialpadTitle.setVisibility(View.VISIBLE);
 
-        // TODO: Integrating emergency phone number table will get location information.
-        // Using null to present no location status.
-        setLocationInfo(null);
-
         mEmergencyShortcutButtonList = new ArrayList<>();
         setupEmergencyCallShortcutButton();
 
-        switchView(mEmergencyShortcutView, mDialpadView, false);
+        updateLocationAndEccInfo(null, null);
 
-        mEmergencyInfoNameObserver = new ContentObserver(new Handler()) {
-            @Override
-            public void onChange(boolean selfChange) {
-                super.onChange(selfChange);
-                getEmergencyInfoNameAsync();
-            }
-        };
-        // Register ContentProvider for monitoring emergency info name changes.
-        getContentResolver().registerContentObserver(CONTENT_URI, false,
-                mEmergencyInfoNameObserver);
-        // Query emergency info name.
-        getEmergencyInfoNameAsync();
+        switchView(mEmergencyShortcutView, mDialpadView, false);
     }
 
-    private void setLocationInfo(String country) {
+    private void setLocationInfo(String countryIso) {
         final View locationInfo = findViewById(R.id.location_info);
 
-        if (TextUtils.isEmpty(country)) {
+        String countryName = null;
+        if (!TextUtils.isEmpty(countryIso)) {
+            Locale locale = Locale.getDefault();
+            countryName = new Locale(locale.getLanguage(), countryIso, locale.getVariant())
+                    .getDisplayCountry();
+        }
+        if (TextUtils.isEmpty(countryName)) {
             locationInfo.setVisibility(View.INVISIBLE);
         } else {
             final TextView location = (TextView) locationInfo.findViewById(R.id.location_text);
-            location.setText(country);
+            location.setText(countryName);
             locationInfo.setVisibility(View.VISIBLE);
         }
     }
 
-    // TODO: Integrate emergency phone number table.
-    // Using default layout(no location, phone number is 112, description is Emergency,
-    // and icon is cross shape) until integrating emergency phone number table.
     private void setupEmergencyCallShortcutButton() {
         final ViewGroup shortcutButtonContainer = findViewById(
                 R.id.emergency_shortcut_buttons_container);
         shortcutButtonContainer.setClipToOutline(true);
+        final TextView emergencyNumberTitle = findViewById(R.id.emergency_number_title);
 
-        final EmergencyShortcutButton button =
-                (EmergencyShortcutButton) getLayoutInflater().inflate(
-                        R.layout.emergency_shortcut_button,
-                        shortcutButtonContainer, false);
+        mShortcutAdapter = new EccShortcutAdapter(this) {
+            @Override
+            public View inflateView(View convertView, ViewGroup parent, CharSequence number,
+                    CharSequence description, int iconRes) {
+                EmergencyShortcutButton button = (EmergencyShortcutButton) getLayoutInflater()
+                        .inflate(R.layout.emergency_shortcut_button, parent, false);
+                button.setPhoneNumber(number);
+                button.setPhoneDescription(description);
+                button.setPhoneTypeIcon(iconRes);
+                button.setOnConfirmClickListener(EmergencyDialer.this);
+                return button;
+            }
+        };
+        mShortcutDataSetObserver = new DataSetObserver() {
+            @Override
+            public void onChanged() {
+                super.onChanged();
+                updateLayout();
+            }
 
-        button.setPhoneNumber("112");
-        button.setPhoneDescription("Emergency");
-        button.setPhoneTypeIcon(R.drawable.ic_emergency_number_24);
-        button.setOnConfirmClickListener(this);
+            @Override
+            public void onInvalidated() {
+                super.onInvalidated();
+                updateLayout();
+            }
 
-        shortcutButtonContainer.addView(button);
-        mEmergencyShortcutButtonList.add(button);
+            private void updateLayout() {
+                // clear previous added buttons
+                shortcutButtonContainer.removeAllViews();
+                mEmergencyShortcutButtonList.clear();
 
-        //Set emergency number title for numerous buttons.
-        if (shortcutButtonContainer.getChildCount() > 1) {
-            final TextView emergencyNumberTitle = findViewById(R.id.emergency_number_title);
-            emergencyNumberTitle.setText(getString(R.string.numerous_emergency_numbers_title));
+                for (int i = 0; i < mShortcutAdapter.getCount() && i < SHORTCUT_SIZE_LIMIT; ++i) {
+                    EmergencyShortcutButton button = (EmergencyShortcutButton)
+                            mShortcutAdapter.getView(i, null, shortcutButtonContainer);
+                    mEmergencyShortcutButtonList.add(button);
+                    shortcutButtonContainer.addView(button);
+                }
+
+                // update emergency numbers title for numerous buttons.
+                if (mEmergencyShortcutButtonList.size() > 1) {
+                    emergencyNumberTitle.setText(getString(
+                            R.string.numerous_emergency_numbers_title));
+                } else {
+                    emergencyNumberTitle.setText(getText(R.string.single_emergency_number_title));
+                }
+            }
+        };
+        mShortcutAdapter.registerDataSetObserver(mShortcutDataSetObserver);
+    }
+
+    private void updateLocationAndEccInfo(String iso, CountryEccInfo countryEccInfo) {
+        if (!isFinishing() && !isDestroyed()) {
+            setLocationInfo(iso);
+            if (mShortcutAdapter != null) {
+                mShortcutAdapter.updateCountryEccInfo(this, countryEccInfo);
+            }
         }
     }
 
@@ -1064,37 +1279,29 @@ public class EmergencyDialer extends Activity implements View.OnClickListener,
                 });
     }
 
-    /**
-     * Get emergency info name from EmergencyInfo and then update EmergencyInfoGroup.
-     */
-    private void getEmergencyInfoNameAsync() {
-        new AsyncTask<Void, Void, String>() {
-            @Override
-            protected String doInBackground(Void... params) {
-                String name = "";
-                try (Cursor cursor = getContentResolver().query(CONTENT_URI, null, null, null,
-                        null)) {
-                    if (cursor != null && cursor.moveToFirst()) {
-                        int index = cursor.getColumnIndex(KEY_EMERGENCY_INFO_NAME);
-                        name = index > -1 ? cursor.getString(index) : "";
-                    }
-                } catch (IllegalArgumentException ex) {
-                    Log.w(LOG_TAG, "getEmergencyInfoNameAsync failed", ex);
-                }
-                return name;
-            }
+    @Override
+    public void onSensorChanged(SensorEvent event) {
+        float distance = event.values[0];
+        mIsProximityNear = (distance < mProximitySensor.getMaximumRange());
+    }
 
-            @Override
-            protected void onPostExecute(String result) {
-                super.onPostExecute(result);
-                if (!isFinishing() && !isDestroyed()) {
-                    // Update emergency info with emergency info name
-                    EmergencyInfoGroup group = findViewById(R.id.emergency_info_button);
-                    if (group != null) {
-                        group.updateEmergencyInfo(result);
-                    }
-                }
+    @Override
+    public void onAccuracyChanged(Sensor sensor, int accuracy) {
+        // Not used.
+    }
+
+    private boolean isShortcutNumber(String number) {
+        if (TextUtils.isEmpty(number) || mEmergencyShortcutButtonList == null) {
+            return false;
+        }
+
+        boolean isShortcut = false;
+        for (EmergencyShortcutButton button : mEmergencyShortcutButtonList) {
+            if (button != null && number.equals(button.getPhoneNumber())) {
+                isShortcut = true;
+                break;
             }
-        }.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
+        }
+        return isShortcut;
     }
 }
