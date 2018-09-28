@@ -55,6 +55,8 @@ import android.telecom.PhoneAccountHandle;
 import android.telecom.TelecomManager;
 import android.telephony.CarrierConfigManager;
 import android.telephony.CellInfo;
+import android.telephony.CellInfoGsm;
+import android.telephony.CellInfoWcdma;
 import android.telephony.ClientRequestStats;
 import android.telephony.IccOpenLogicalChannelResponse;
 import android.telephony.LocationAccessPolicy;
@@ -100,6 +102,7 @@ import com.android.internal.telephony.MccTable;
 import com.android.internal.telephony.NetworkScanRequestTracker;
 import com.android.internal.telephony.OperatorInfo;
 import com.android.internal.telephony.Phone;
+import com.android.internal.telephony.PhoneConfigurationManager;
 import com.android.internal.telephony.PhoneConstantConversions;
 import com.android.internal.telephony.PhoneConstants;
 import com.android.internal.telephony.PhoneFactory;
@@ -145,8 +148,6 @@ public class PhoneInterfaceManager extends ITelephony.Stub {
 
     // Message codes used with mMainThreadHandler
     private static final int CMD_HANDLE_PIN_MMI = 1;
-    private static final int CMD_HANDLE_NEIGHBORING_CELL = 2;
-    private static final int EVENT_NEIGHBORING_CELL_DONE = 3;
     private static final int CMD_ANSWER_RINGING_CALL = 4;
     private static final int CMD_END_CALL = 5;  // not used yet
     private static final int CMD_TRANSMIT_APDU_LOGICAL_CHANNEL = 7;
@@ -216,6 +217,7 @@ public class PhoneInterfaceManager extends ITelephony.Stub {
     private MainThreadHandler mMainThreadHandler;
     private SubscriptionController mSubscriptionController;
     private SharedPreferences mTelephonySharedPreferences;
+    private PhoneConfigurationManager mPhoneConfigurationManager;
 
     private static final String PREF_CARRIERS_ALPHATAG_PREFIX = "carrier_alphtag_";
     private static final String PREF_CARRIERS_NUMBER_PREFIX = "carrier_number_";
@@ -369,28 +371,6 @@ public class PhoneInterfaceManager extends ITelephony.Stub {
                     }
                     break;
                 }
-
-                case CMD_HANDLE_NEIGHBORING_CELL:
-                    request = (MainThreadRequest) msg.obj;
-                    onCompleted = obtainMessage(EVENT_NEIGHBORING_CELL_DONE,
-                            request);
-                    mPhone.getNeighboringCids(onCompleted, (WorkSource)request.argument);
-                    break;
-
-                case EVENT_NEIGHBORING_CELL_DONE:
-                    ar = (AsyncResult) msg.obj;
-                    request = (MainThreadRequest) ar.userObj;
-                    if (ar.exception == null && ar.result != null) {
-                        request.result = ar.result;
-                    } else {
-                        // create an empty list to notify the waiting thread
-                        request.result = new ArrayList<NeighboringCellInfo>(0);
-                    }
-                    // Wake up the requesting thread
-                    synchronized (request) {
-                        request.notifyAll();
-                    }
-                    break;
 
                 case CMD_ANSWER_RINGING_CALL:
                     request = (MainThreadRequest) msg.obj;
@@ -1113,6 +1093,7 @@ public class PhoneInterfaceManager extends ITelephony.Stub {
                 PreferenceManager.getDefaultSharedPreferences(mPhone.getContext());
         mSubscriptionController = SubscriptionController.getInstance();
         mNetworkScanRequestTracker = new NetworkScanRequestTracker();
+        mPhoneConfigurationManager = PhoneConfigurationManager.getInstance();
 
         publish();
     }
@@ -1873,6 +1854,10 @@ public class PhoneInterfaceManager extends ITelephony.Stub {
         // registered cell info, so return a NULL country instead.
         final long identity = Binder.clearCallingIdentity();
         try {
+            if (phoneId == SubscriptionManager.INVALID_PHONE_INDEX) {
+                // Get default phone in this case.
+                phoneId = SubscriptionManager.DEFAULT_PHONE_INDEX;
+            }
             final int subId = mSubscriptionController.getSubIdUsingPhoneId(phoneId);
             // Todo: fix this when we can get the actual cellular network info when the device
             // is on IWLAN.
@@ -1940,13 +1925,9 @@ public class PhoneInterfaceManager extends ITelephony.Stub {
 
     @Override
     @SuppressWarnings("unchecked")
-    public List<NeighboringCellInfo> getNeighboringCellInfo(String callingPackage) {
-        mPhone.getContext().getSystemService(AppOpsManager.class)
-                .checkPackage(Binder.getCallingUid(), callingPackage);
-        if (!LocationAccessPolicy.canAccessCellLocation(mPhone.getContext(),
-                callingPackage, Binder.getCallingUid(), Binder.getCallingPid(), true)) {
-            return null;
-        }
+    public List<NeighboringCellInfo>
+            getNeighboringCellInfo(String callingPackage, int targetSdk) {
+        if (targetSdk > android.os.Build.VERSION_CODES.P) return null;
 
         if (mAppOps.noteOp(AppOpsManager.OP_NEIGHBORING_CELLS, Binder.getCallingUid(),
                 callingPackage) != AppOpsManager.MODE_ALLOWED) {
@@ -1955,21 +1936,18 @@ public class PhoneInterfaceManager extends ITelephony.Stub {
 
         if (DBG_LOC) log("getNeighboringCellInfo: is active user");
 
-        ArrayList<NeighboringCellInfo> cells = null;
+        List<CellInfo> info = getAllCellInfo(callingPackage);
+        if (info == null) return null;
 
-        WorkSource workSource = getWorkSource(Binder.getCallingUid());
-
-        final long identity = Binder.clearCallingIdentity();
-        try {
-            cells = (ArrayList<NeighboringCellInfo>) sendRequest(
-                    CMD_HANDLE_NEIGHBORING_CELL, workSource,
-                    SubscriptionManager.INVALID_SUBSCRIPTION_ID);
-        } catch (RuntimeException e) {
-            Log.e(LOG_TAG, "getNeighboringCellInfo " + e);
-        } finally {
-            Binder.restoreCallingIdentity(identity);
+        List<NeighboringCellInfo> neighbors = new ArrayList<NeighboringCellInfo>();
+        for (CellInfo ci : info) {
+            if (ci instanceof CellInfoGsm) {
+                neighbors.add(new NeighboringCellInfo((CellInfoGsm) ci));
+            } else if (ci instanceof CellInfoWcdma) {
+                neighbors.add(new NeighboringCellInfo((CellInfoWcdma) ci));
+            }
         }
-        return cells;
+        return (neighbors.size()) > 0 ? neighbors : null;
     }
 
 
@@ -5219,6 +5197,21 @@ public class PhoneInterfaceManager extends ITelephony.Stub {
                 return TelephonyManager.UNKNOWN_CARRIER_ID_LIST_VERSION;
             }
             return phone.getCarrierIdListVersion();
+        } finally {
+            Binder.restoreCallingIdentity(identity);
+        }
+    }
+
+    @Override
+    public int getNumberOfModemsWithSimultaneousDataConnections(int subId, String callingPackage) {
+        if (!TelephonyPermissions.checkCallingOrSelfReadPhoneState(
+                mApp, subId, callingPackage, "getNumberOfModemsWithSimultaneousDataConnections")) {
+            return -1;
+        }
+
+        final long identity = Binder.clearCallingIdentity();
+        try {
+            return mPhoneConfigurationManager.getNumberOfModemsWithSimultaneousDataConnections();
         } finally {
             Binder.restoreCallingIdentity(identity);
         }

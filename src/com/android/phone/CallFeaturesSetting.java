@@ -200,16 +200,25 @@ public class CallFeaturesSetting extends PreferenceActivity
         }
     }
 
+    private void listenPhoneState(boolean listen) {
+        TelephonyManager telephonyManager =
+                (TelephonyManager) getSystemService(Context.TELEPHONY_SERVICE);
+        telephonyManager.listen(mPhoneStateListener, listen
+                ? PhoneStateListener.LISTEN_CALL_STATE : PhoneStateListener.LISTEN_NONE);
+    }
+
     private final PhoneStateListener mPhoneStateListener = new PhoneStateListener() {
         @Override
         public void onCallStateChanged(int state, String incomingNumber) {
             if (DBG) log("PhoneStateListener onCallStateChanged: state is " + state);
+            // Use TelecomManager#getCallStete instead of 'state' parameter because it needs
+            // to check the current state of all phone calls.
+            boolean isCallStateIdle =
+                    mTelecomManager.getCallState() == TelephonyManager.CALL_STATE_IDLE;
             if (mEnableVideoCalling != null) {
-                // Use TelephonyManager#getCallStete instead of 'state' parameter because it needs
-                // to check the current state of all phone calls.
-                boolean isCallStateIdle =
-                        mTelecomManager.getCallState() == TelephonyManager.CALL_STATE_IDLE;
                 mEnableVideoCalling.setEnabled(isCallStateIdle);
+            }
+            if (mButtonWifiCalling != null) {
                 mButtonWifiCalling.setEnabled(isCallStateIdle);
             }
         }
@@ -218,10 +227,7 @@ public class CallFeaturesSetting extends PreferenceActivity
     @Override
     protected void onPause() {
         super.onPause();
-        TelephonyManager telephonyManager =
-                (TelephonyManager) getSystemService(Context.TELEPHONY_SERVICE);
-        telephonyManager.createForSubscriptionId(mPhone.getSubId())
-                .listen(mPhoneStateListener, PhoneStateListener.LISTEN_NONE);
+        listenPhoneState(false);
     }
 
     @Override
@@ -229,6 +235,7 @@ public class CallFeaturesSetting extends PreferenceActivity
         super.onResume();
 
         updateImsManager(mPhone);
+        listenPhoneState(true);
         PreferenceScreen preferenceScreen = getPreferenceScreen();
         if (preferenceScreen != null) {
             preferenceScreen.removeAll();
@@ -238,7 +245,6 @@ public class CallFeaturesSetting extends PreferenceActivity
 
         TelephonyManager telephonyManager = getSystemService(TelephonyManager.class)
                 .createForSubscriptionId(mPhone.getSubId());
-        telephonyManager.listen(mPhoneStateListener, PhoneStateListener.LISTEN_CALL_STATE);
 
         PreferenceScreen prefSet = getPreferenceScreen();
         mVoicemailSettingsScreen =

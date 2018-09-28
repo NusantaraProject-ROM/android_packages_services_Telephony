@@ -630,6 +630,12 @@ abstract class TelephonyConnection extends Connection implements Holdable,
             updateConnectionProperties();
             sendRttSessionRemotelyTerminated();
         }
+
+        @Override
+        public void onOriginalConnectionReplaced(
+                com.android.internal.telephony.Connection newConnection) {
+            setOriginalConnection(newConnection);
+        }
     };
 
     protected com.android.internal.telephony.Connection mOriginalConnection;
@@ -2187,10 +2193,8 @@ abstract class TelephonyConnection extends Connection implements Holdable,
     }
 
     private void updateStatusHints() {
-        boolean isIncoming = isValidRingingCall();
-        if (mIsWifi && (isIncoming || getState() == STATE_ACTIVE) &&
-                (getPhone() != null)) {
-            final int labelId = isIncoming
+        if (mIsWifi && getPhone() != null) {
+            int labelId = isValidRingingCall()
                     ? R.string.status_hint_label_incoming_wifi_call
                     : R.string.status_hint_label_wifi_call;
             String displaySubId = "";
