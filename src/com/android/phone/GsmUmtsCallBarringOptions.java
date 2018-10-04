@@ -518,8 +518,6 @@ public class GsmUmtsCallBarringOptions extends TimeConsumingPreferenceActivity
             mButtonChangePW.setText(mIcicle.getString(DIALOG_PW_ENTRY_KEY));
         }
 
-        CarrierConfigManager configManager = (CarrierConfigManager)mPhone.
-            getContext().getSystemService(Context.CARRIER_CONFIG_SERVICE);
         PersistableBundle pb = configManager.getConfigForSubId(mPhone.getSubId());
         mCheckData = pb.getBoolean("check_mobile_data_for_cf");
     }
