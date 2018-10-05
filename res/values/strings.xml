@@ -1151,8 +1151,6 @@
     <string name="emergency_information_hint">Emergency information</string>
     <!-- Hint for the owner of emergency information -->
     <string name="emergency_information_owner_hint">Owner</string>
-    <!-- Content description for the owner of emergency information -->
-    <string name="emergency_information_owner_content_description"><xliff:g id="user_name">%s</xliff:g>\'s</string>
     <!-- Dialog title for the "radio enable" UI for emergency calls -->
     <string name="emergency_enable_radio_dialog_title">Emergency call</string>
     <!-- Title for the emergency dialpad UI -->
@@ -1178,6 +1176,19 @@
     <!-- Message displayed over top of the emergency dialer dialpad indicating to the user that
          emergency calling is not currently available. -->
     <string name="dial_emergency_calling_not_available">Emergency calling not available</string>
+
+    <!-- Text for description of police calling type -->
+    <string name="police_type_description">Police</string>
+    <!-- Text for description of ambulance calling type -->
+    <string name="ambulance_type_description">Ambulance</string>
+    <!-- Text for description of fire calling type -->
+    <string name="fire_type_description">Fire</string>
+
+    <!-- Format for concatenating multiple emergency type descriptions. The separator may differ in
+         different locales, for example arabic comma "،" is used in some countries. Some languages
+         may use full-width separator without leading or trailing spaces, eg. Ideographic comma "、"
+         in Chinese and Japanese. -->
+    <string name="description_concat_format">%1$s, %2$s</string>
 
     <!-- Displayed in the text entry box in the dialer when in landscape mode to guide the user
          to dial using the physical keyboard -->
@@ -1412,6 +1423,13 @@
          [CHAR LIMIT=NONE]
     -->
     <string name="description_dialpad_button">show dialpad</string>
+
+    <!-- Pane title of the Emergency Dialpad
+
+     Used by AccessibilityService to announce the purpose of the pane of emergency dialpad.
+     [CHAR LIMIT=NONE]
+    -->
+    <string name="pane_title_emergency_dialpad">Emergency Dialpad</string>
 
     <!-- Visual voicemail on/off title [CHAR LIMIT=40] -->
     <string name="voicemail_visual_voicemail_switch_title">Visual Voicemail</string>
