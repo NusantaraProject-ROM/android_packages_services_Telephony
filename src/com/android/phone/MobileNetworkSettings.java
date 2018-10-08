@@ -24,12 +24,10 @@ import android.app.DialogFragment;
 import android.app.Fragment;
 import android.app.FragmentManager;
 import android.content.BroadcastReceiver;
-import android.content.ComponentName;
 import android.content.ContentResolver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
-import android.content.ServiceConnection;
 import android.content.pm.PackageManager;
 import android.content.pm.ResolveInfo;
 import android.database.ContentObserver;
@@ -38,7 +36,6 @@ import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.Handler;
-import android.os.IBinder;
 import android.os.Message;
 import android.os.PersistableBundle;
 import android.os.SystemProperties;
@@ -77,7 +74,6 @@ import com.android.internal.logging.nano.MetricsProto.MetricsEvent;
 import com.android.internal.telephony.Phone;
 import com.android.internal.telephony.PhoneConstants;
 import com.android.internal.telephony.TelephonyIntents;
-import com.android.phone.settings.PhoneAccountSettingsFragment;
 import com.android.settingslib.RestrictedLockUtilsInternal;
 
 import java.util.ArrayList;
@@ -107,6 +103,9 @@ public class MobileNetworkSettings extends Activity  {
     // the default value is false.
     private static final String KEY_ENABLE_ESIM_UI_BY_DEFAULT =
             "esim.enable_esim_system_ui_by_default";
+
+    private static final String LEGACY_ACTION_CONFIGURE_PHONE_ACCOUNT =
+            "android.telecom.action.CONNECTION_SERVICE_CONFIGURE";
 
     private enum TabState {
         NO_TABS, UPDATE, DO_NOTHING
@@ -171,8 +170,8 @@ public class MobileNetworkSettings extends Activity  {
 
         boolean isWifiCallingEnabled;
         if (simCallManager != null) {
-            Intent intent = PhoneAccountSettingsFragment
-                    .buildPhoneAccountConfigureIntent(context, simCallManager);
+            Intent intent = MobileNetworkSettings.buildPhoneAccountConfigureIntent(
+                    context, simCallManager);
             PackageManager pm = context.getPackageManager();
             isWifiCallingEnabled = intent != null
                     && !pm.queryIntentActivities(intent, 0 /* flags */).isEmpty();
@@ -239,15 +238,16 @@ public class MobileNetworkSettings extends Activity  {
      * doesn't set {@link CarrierConfigManager#KEY_HIDE_ENHANCED_4G_LTE_BOOL} to false.
      */
     public static boolean hideEnhanced4gLteSettings(Context context) {
-        List<SubscriptionInfo> sil =
+        final CarrierConfigManager carrierConfigManager = new CarrierConfigManager(context);
+        final List<SubscriptionInfo> sil =
                 SubscriptionManager.from(context).getActiveSubscriptionInfoList();
         // Check all active subscriptions. We only hide the button if it's disabled for all
         // active subscriptions.
         if (sil != null) {
             for (SubscriptionInfo subInfo : sil) {
                 ImsManager imsManager = ImsManager.getInstance(context, subInfo.getSimSlotIndex());
-                PersistableBundle carrierConfig = PhoneGlobals.getInstance()
-                        .getCarrierConfigForSubId(subInfo.getSubscriptionId());
+                PersistableBundle carrierConfig = carrierConfigManager.getConfigForSubId(
+                        subInfo.getSubscriptionId());
                 if ((imsManager.isVolteEnabledByPlatform()
                         && imsManager.isVolteProvisionedOnDevice())
                         || carrierConfig.getBoolean(
@@ -288,6 +288,47 @@ public class MobileNetworkSettings extends Activity  {
 
         Log.d(MobileNetworkFragment.LOG_TAG, "isImsServiceStateReady=" + isImsServiceStateReady);
         return isImsServiceStateReady;
+    }
+
+
+    private static Intent buildPhoneAccountConfigureIntent(
+            Context context, PhoneAccountHandle accountHandle) {
+        Intent intent = buildConfigureIntent(
+                context, accountHandle, TelecomManager.ACTION_CONFIGURE_PHONE_ACCOUNT);
+
+        if (intent == null) {
+            // If the new configuration didn't work, try the old configuration intent.
+            intent = buildConfigureIntent(
+                    context, accountHandle, LEGACY_ACTION_CONFIGURE_PHONE_ACCOUNT);
+            if (intent != null) {
+                Log.w(MobileNetworkFragment.LOG_TAG,
+                        "Phone account using old configuration intent: " + accountHandle);
+            }
+        }
+        return intent;
+    }
+
+    private static Intent buildConfigureIntent(
+            Context context, PhoneAccountHandle accountHandle, String actionStr) {
+        if (accountHandle == null || accountHandle.getComponentName() == null
+                || TextUtils.isEmpty(accountHandle.getComponentName().getPackageName())) {
+            return null;
+        }
+
+        // Build the settings intent.
+        Intent intent = new Intent(actionStr);
+        intent.setPackage(accountHandle.getComponentName().getPackageName());
+        intent.addCategory(Intent.CATEGORY_DEFAULT);
+        intent.putExtra(TelecomManager.EXTRA_PHONE_ACCOUNT_HANDLE, accountHandle);
+
+        // Check to see that the phone account package can handle the setting intent.
+        PackageManager pm = context.getPackageManager();
+        List<ResolveInfo> resolutions = pm.queryIntentActivities(intent, 0);
+        if (resolutions.size() == 0) {
+            intent = null;  // set no intent if the package cannot handle it.
+        }
+
+        return intent;
     }
 
     public static class MobileNetworkFragment extends PreferenceFragment implements
@@ -347,6 +388,7 @@ public class MobileNetworkSettings extends Activity  {
 
         private SubscriptionManager mSubscriptionManager;
         private TelephonyManager mTelephonyManager;
+        private CarrierConfigManager mCarrierConfigManager;
         private int mSubId;
 
         //UI objects
@@ -383,6 +425,7 @@ public class MobileNetworkSettings extends Activity  {
         private Preference mClickedPreference;
         private boolean mShow4GForLTE;
         private boolean mIsGlobalCdma;
+        private boolean mOnlyAutoSelectInHomeNW;
         private boolean mUnavailable;
 
         private class PhoneCallStateListener extends PhoneStateListener {
@@ -399,6 +442,7 @@ public class MobileNetworkSettings extends Activity  {
                 updateEnhanced4gLteState();
                 updateWiFiCallState();
                 updateVideoCallState();
+                updatePreferredNetworkType();
             }
 
             /**
@@ -421,53 +465,6 @@ public class MobileNetworkSettings extends Activity  {
         }
 
         private final PhoneCallStateListener mPhoneStateListener = new PhoneCallStateListener();
-
-        /**
-         * Service connection code for the NetworkQueryService.
-         * Handles the work of binding to a local object so that we can make
-         * the appropriate service calls.
-         */
-
-        /** Local service interface */
-        private INetworkQueryService mNetworkQueryService = null;
-
-        private void setNetworkQueryService() {
-            mButtonNetworkSelect = (NetworkSelectListPreference) getPreferenceScreen()
-                    .findPreference(NetworkOperators.BUTTON_NETWORK_SELECT_KEY);
-            if (mButtonNetworkSelect != null) {
-                mButtonNetworkSelect.setNetworkQueryService(mNetworkQueryService);
-            }
-
-        }
-        /** Service connection */
-        private final ServiceConnection mNetworkQueryServiceConnection = new ServiceConnection() {
-
-            /** Handle the task of binding the local object to the service */
-            public void onServiceConnected(ComponentName className, IBinder service) {
-                if (DBG) log("connection created, binding local service.");
-                mNetworkQueryService = ((NetworkQueryService.LocalBinder) service).getService();
-                setNetworkQueryService();
-            }
-
-            /** Handle the task of cleaning up the local binding */
-            public void onServiceDisconnected(ComponentName className) {
-                if (DBG) log("connection disconnected, cleaning local binding.");
-                mNetworkQueryService = null;
-                setNetworkQueryService();
-            }
-        };
-
-        private void bindNetworkQueryService() {
-            getContext().startService(new Intent(getContext(), NetworkQueryService.class));
-            getContext().bindService(new Intent(getContext(), NetworkQueryService.class).setAction(
-                        NetworkQueryService.ACTION_LOCAL_BINDER),
-                        mNetworkQueryServiceConnection, Context.BIND_AUTO_CREATE);
-        }
-
-        private void unbindNetworkQueryService() {
-            // unbind the service.
-            getContext().unbindService(mNetworkQueryServiceConnection);
-        }
 
         @Override
         public void onPositiveButtonClick(DialogFragment dialog) {
@@ -788,14 +785,13 @@ public class MobileNetworkSettings extends Activity  {
             mSubscriptionManager = SubscriptionManager.from(activity);
             mTelephonyManager = (TelephonyManager) activity.getSystemService(
                             Context.TELEPHONY_SERVICE);
+            mCarrierConfigManager = new CarrierConfigManager(getContext());
 
             if (icicle != null) {
                 mExpandAdvancedFields = icicle.getBoolean(EXPAND_ADVANCED_FIELDS, false);
             } else if (getActivity().getIntent().getBooleanExtra(EXPAND_EXTRA, false)) {
                 mExpandAdvancedFields = true;
             }
-
-            bindNetworkQueryService();
 
             addPreferencesFromResource(R.xml.network_setting_fragment);
 
@@ -900,7 +896,6 @@ public class MobileNetworkSettings extends Activity  {
         @Override
         public void onDestroy() {
             super.onDestroy();
-            unbindNetworkQueryService();
             if (mMobileDataPref != null) {
                 mMobileDataPref.dispose();
             }
@@ -1055,8 +1050,7 @@ public class MobileNetworkSettings extends Activity  {
                     android.provider.Settings.Global.PREFERRED_NETWORK_MODE + phoneSubId,
                     preferredNetworkMode);
 
-            PersistableBundle carrierConfig =
-                    PhoneGlobals.getInstance().getCarrierConfigForSubId(mSubId);
+            PersistableBundle carrierConfig = mCarrierConfigManager.getConfigForSubId(mSubId);
             mIsGlobalCdma = isLteOnCdma
                     && carrierConfig.getBoolean(CarrierConfigManager.KEY_SHOW_CDMA_CHOICES_BOOL);
             if (carrierConfig.getBoolean(
@@ -1076,7 +1070,7 @@ public class MobileNetworkSettings extends Activity  {
                 if (phoneType == PhoneConstants.PHONE_TYPE_CDMA) {
                     updateCdmaOptions(this, prefSet, mSubId);
                 } else if (phoneType == PhoneConstants.PHONE_TYPE_GSM) {
-                    updateGsmUmtsOptions(this, prefSet, phoneSubId, mNetworkQueryService);
+                    updateGsmUmtsOptions(this, prefSet, phoneSubId);
                 } else {
                     throw new IllegalStateException("Unexpected phone type: " + phoneType);
                 }
@@ -1092,7 +1086,7 @@ public class MobileNetworkSettings extends Activity  {
                 mButtonPreferredNetworkMode.setOnPreferenceChangeListener(this);
 
                 updateCdmaOptions(this, prefSet, mSubId);
-                updateGsmUmtsOptions(this, prefSet, phoneSubId, mNetworkQueryService);
+                updateGsmUmtsOptions(this, prefSet, phoneSubId);
             } else {
                 prefSet.removePreference(mButtonPreferredNetworkMode);
                 updateEnabledNetworksEntries();
@@ -1110,6 +1104,7 @@ public class MobileNetworkSettings extends Activity  {
             }
 
             updateEnhanced4gLteState();
+            updatePreferredNetworkType();
             updateCallingCategory();
 
             // Enable link to CMAS app settings depending on the value in config.xml.
@@ -1159,15 +1154,19 @@ public class MobileNetworkSettings extends Activity  {
              * but you do need to remember that this all needs to work when subscriptions
              * change dynamically such as when hot swapping sims.
              */
-            boolean useVariant4glteTitle = carrierConfig.getBoolean(
-                    CarrierConfigManager.KEY_ENHANCED_4G_LTE_TITLE_VARIANT_BOOL);
-            int enhanced4glteModeTitleId = useVariant4glteTitle ?
-                    R.string.enhanced_4g_lte_mode_title_variant :
-                    R.string.enhanced_4g_lte_mode_title;
+            int variant4glteTitleIndex = carrierConfig.getInt(
+                    CarrierConfigManager.KEY_ENHANCED_4G_LTE_TITLE_VARIANT_INT);
+            CharSequence[] variantTitles = getContext().getResources()
+                    .getTextArray(R.array.enhanced_4g_lte_mode_title_variant);
+            // Default index 0 indicates the default title string
+            CharSequence enhanced4glteModeTitle = variantTitles[0];
+            if (variant4glteTitleIndex >= 0 && variant4glteTitleIndex < variantTitles.length) {
+                enhanced4glteModeTitle = variantTitles[variant4glteTitleIndex];
+            }
 
-            mButtonPreferredNetworkMode.setEnabled(hasActiveSubscriptions);
-            mButtonEnabledNetworks.setEnabled(hasActiveSubscriptions);
-            mButton4glte.setTitle(enhanced4glteModeTitleId);
+            mOnlyAutoSelectInHomeNW = carrierConfig.getBoolean(
+                    CarrierConfigManager.KEY_ONLY_AUTO_SELECT_IN_HOME_NETWORK_BOOL);
+            mButton4glte.setTitle(enhanced4glteModeTitle);
             mLteDataServicePref.setEnabled(hasActiveSubscriptions);
             Preference ps;
             ps = findPreference(BUTTON_CELL_BROADCAST_SETTINGS);
@@ -1198,13 +1197,26 @@ public class MobileNetworkSettings extends Activity  {
             if (ps != null) {
                 ps.setEnabled(hasActiveSubscriptions);
             }
+            ps = findPreference(NetworkOperators.BUTTON_AUTO_SELECT_KEY);
+            if (ps != null) {
+                ps.setSummary(null);
+                if (mTelephonyManager.getServiceState().getRoaming()) {
+                    ps.setEnabled(true);
+                } else {
+                    ps.setEnabled(!mOnlyAutoSelectInHomeNW);
+                    if (mOnlyAutoSelectInHomeNW) {
+                        ps.setSummary(getResources().getString(
+                                R.string.manual_mode_disallowed_summary,
+                                mTelephonyManager.getSimOperatorName()));
+                    }
+                }
+            }
         }
 
         // Requires that mSubId is up to date
         void updateEnabledNetworksEntries() {
             final int phoneType = mTelephonyManager.getPhoneType();
-            final PersistableBundle carrierConfig =
-                    PhoneGlobals.getInstance().getCarrierConfigForSubId(mSubId);
+            final PersistableBundle carrierConfig = mCarrierConfigManager.getConfigForSubId(mSubId);
             if (phoneType == PhoneConstants.PHONE_TYPE_CDMA) {
                 final int lteForced = android.provider.Settings.Global.getInt(
                         getContext().getContentResolver(),
@@ -1224,18 +1236,18 @@ public class MobileNetworkSettings extends Activity  {
                                 R.array.enabled_networks_cdma_values);
                     } else {
                         switch (settingsNetworkMode) {
-                            case Phone.NT_MODE_CDMA:
-                            case Phone.NT_MODE_CDMA_NO_EVDO:
-                            case Phone.NT_MODE_EVDO_NO_CDMA:
+                            case TelephonyManager.NETWORK_MODE_CDMA_EVDO:
+                            case TelephonyManager.NETWORK_MODE_CDMA_NO_EVDO:
+                            case TelephonyManager.NETWORK_MODE_EVDO_NO_CDMA:
                                 mButtonEnabledNetworks.setEntries(
                                         R.array.enabled_networks_cdma_no_lte_choices);
                                 mButtonEnabledNetworks.setEntryValues(
                                         R.array.enabled_networks_cdma_no_lte_values);
                                 break;
-                            case Phone.NT_MODE_GLOBAL:
-                            case Phone.NT_MODE_LTE_CDMA_AND_EVDO:
-                            case Phone.NT_MODE_LTE_CDMA_EVDO_GSM_WCDMA:
-                            case Phone.NT_MODE_LTE_ONLY:
+                            case TelephonyManager.NETWORK_MODE_GLOBAL:
+                            case TelephonyManager.NETWORK_MODE_LTE_CDMA_EVDO:
+                            case TelephonyManager.NETWORK_MODE_LTE_CDMA_EVDO_GSM_WCDMA:
+                            case TelephonyManager.NETWORK_MODE_LTE_ONLY:
                                 mButtonEnabledNetworks.setEntries(
                                         R.array.enabled_networks_cdma_only_lte_choices);
                                 mButtonEnabledNetworks.setEntryValues(
@@ -1288,8 +1300,7 @@ public class MobileNetworkSettings extends Activity  {
                     mButtonEnabledNetworks.setEntryValues(
                             R.array.enabled_networks_values);
                 }
-                updateGsmUmtsOptions(this, getPreferenceScreen(), mSubId,
-                        mNetworkQueryService);
+                updateGsmUmtsOptions(this, getPreferenceScreen(), mSubId);
             } else {
                 throw new IllegalStateException("Unexpected phone type: " + phoneType);
             }
@@ -1343,29 +1354,29 @@ public class MobileNetworkSettings extends Activity  {
                     int modemNetworkMode;
                     // if new mode is invalid ignore it
                     switch (buttonNetworkMode) {
-                        case Phone.NT_MODE_WCDMA_PREF:
-                        case Phone.NT_MODE_GSM_ONLY:
-                        case Phone.NT_MODE_WCDMA_ONLY:
-                        case Phone.NT_MODE_GSM_UMTS:
-                        case Phone.NT_MODE_CDMA:
-                        case Phone.NT_MODE_CDMA_NO_EVDO:
-                        case Phone.NT_MODE_EVDO_NO_CDMA:
-                        case Phone.NT_MODE_GLOBAL:
-                        case Phone.NT_MODE_LTE_CDMA_AND_EVDO:
-                        case Phone.NT_MODE_LTE_GSM_WCDMA:
-                        case Phone.NT_MODE_LTE_CDMA_EVDO_GSM_WCDMA:
-                        case Phone.NT_MODE_LTE_ONLY:
-                        case Phone.NT_MODE_LTE_WCDMA:
-                        case Phone.NT_MODE_TDSCDMA_ONLY:
-                        case Phone.NT_MODE_TDSCDMA_WCDMA:
-                        case Phone.NT_MODE_LTE_TDSCDMA:
-                        case Phone.NT_MODE_TDSCDMA_GSM:
-                        case Phone.NT_MODE_LTE_TDSCDMA_GSM:
-                        case Phone.NT_MODE_TDSCDMA_GSM_WCDMA:
-                        case Phone.NT_MODE_LTE_TDSCDMA_WCDMA:
-                        case Phone.NT_MODE_LTE_TDSCDMA_GSM_WCDMA:
-                        case Phone.NT_MODE_TDSCDMA_CDMA_EVDO_GSM_WCDMA:
-                        case Phone.NT_MODE_LTE_TDSCDMA_CDMA_EVDO_GSM_WCDMA:
+                        case TelephonyManager.NETWORK_MODE_WCDMA_PREF:
+                        case TelephonyManager.NETWORK_MODE_GSM_ONLY:
+                        case TelephonyManager.NETWORK_MODE_WCDMA_ONLY:
+                        case TelephonyManager.NETWORK_MODE_GSM_UMTS:
+                        case TelephonyManager.NETWORK_MODE_CDMA_EVDO:
+                        case TelephonyManager.NETWORK_MODE_CDMA_NO_EVDO:
+                        case TelephonyManager.NETWORK_MODE_EVDO_NO_CDMA:
+                        case TelephonyManager.NETWORK_MODE_GLOBAL:
+                        case TelephonyManager.NETWORK_MODE_LTE_CDMA_EVDO:
+                        case TelephonyManager.NETWORK_MODE_LTE_GSM_WCDMA:
+                        case TelephonyManager.NETWORK_MODE_LTE_CDMA_EVDO_GSM_WCDMA:
+                        case TelephonyManager.NETWORK_MODE_LTE_ONLY:
+                        case TelephonyManager.NETWORK_MODE_LTE_WCDMA:
+                        case TelephonyManager.NETWORK_MODE_TDSCDMA_ONLY:
+                        case TelephonyManager.NETWORK_MODE_TDSCDMA_WCDMA:
+                        case TelephonyManager.NETWORK_MODE_LTE_TDSCDMA:
+                        case TelephonyManager.NETWORK_MODE_TDSCDMA_GSM:
+                        case TelephonyManager.NETWORK_MODE_LTE_TDSCDMA_GSM:
+                        case TelephonyManager.NETWORK_MODE_TDSCDMA_GSM_WCDMA:
+                        case TelephonyManager.NETWORK_MODE_LTE_TDSCDMA_WCDMA:
+                        case TelephonyManager.NETWORK_MODE_LTE_TDSCDMA_GSM_WCDMA:
+                        case TelephonyManager.NETWORK_MODE_TDSCDMA_CDMA_EVDO_GSM_WCDMA:
+                        case TelephonyManager.NETWORK_MODE_LTE_TDSCDMA_CDMA_EVDO_GSM_WCDMA:
                             // This is one of the modes we recognize
                             modemNetworkMode = buttonNetworkMode;
                             break;
@@ -1399,23 +1410,23 @@ public class MobileNetworkSettings extends Activity  {
                     int modemNetworkMode;
                     // if new mode is invalid ignore it
                     switch (buttonNetworkMode) {
-                        case Phone.NT_MODE_WCDMA_PREF:
-                        case Phone.NT_MODE_GSM_ONLY:
-                        case Phone.NT_MODE_LTE_GSM_WCDMA:
-                        case Phone.NT_MODE_LTE_CDMA_EVDO_GSM_WCDMA:
-                        case Phone.NT_MODE_CDMA:
-                        case Phone.NT_MODE_CDMA_NO_EVDO:
-                        case Phone.NT_MODE_LTE_CDMA_AND_EVDO:
-                        case Phone.NT_MODE_TDSCDMA_ONLY:
-                        case Phone.NT_MODE_TDSCDMA_WCDMA:
-                        case Phone.NT_MODE_LTE_TDSCDMA:
-                        case Phone.NT_MODE_TDSCDMA_GSM:
-                        case Phone.NT_MODE_LTE_TDSCDMA_GSM:
-                        case Phone.NT_MODE_TDSCDMA_GSM_WCDMA:
-                        case Phone.NT_MODE_LTE_TDSCDMA_WCDMA:
-                        case Phone.NT_MODE_LTE_TDSCDMA_GSM_WCDMA:
-                        case Phone.NT_MODE_TDSCDMA_CDMA_EVDO_GSM_WCDMA:
-                        case Phone.NT_MODE_LTE_TDSCDMA_CDMA_EVDO_GSM_WCDMA:
+                        case TelephonyManager.NETWORK_MODE_WCDMA_PREF:
+                        case TelephonyManager.NETWORK_MODE_GSM_ONLY:
+                        case TelephonyManager.NETWORK_MODE_LTE_GSM_WCDMA:
+                        case TelephonyManager.NETWORK_MODE_LTE_CDMA_EVDO_GSM_WCDMA:
+                        case TelephonyManager.NETWORK_MODE_CDMA_EVDO:
+                        case TelephonyManager.NETWORK_MODE_CDMA_NO_EVDO:
+                        case TelephonyManager.NETWORK_MODE_LTE_CDMA_EVDO:
+                        case TelephonyManager.NETWORK_MODE_TDSCDMA_ONLY:
+                        case TelephonyManager.NETWORK_MODE_TDSCDMA_WCDMA:
+                        case TelephonyManager.NETWORK_MODE_LTE_TDSCDMA:
+                        case TelephonyManager.NETWORK_MODE_TDSCDMA_GSM:
+                        case TelephonyManager.NETWORK_MODE_LTE_TDSCDMA_GSM:
+                        case TelephonyManager.NETWORK_MODE_TDSCDMA_GSM_WCDMA:
+                        case TelephonyManager.NETWORK_MODE_LTE_TDSCDMA_WCDMA:
+                        case TelephonyManager.NETWORK_MODE_LTE_TDSCDMA_GSM_WCDMA:
+                        case TelephonyManager.NETWORK_MODE_TDSCDMA_CDMA_EVDO_GSM_WCDMA:
+                        case TelephonyManager.NETWORK_MODE_LTE_TDSCDMA_CDMA_EVDO_GSM_WCDMA:
                             // This is one of the modes we recognize
                             modemNetworkMode = buttonNetworkMode;
                             break;
@@ -1447,8 +1458,8 @@ public class MobileNetworkSettings extends Activity  {
 
                 //normally called on the toggle click
                 if (!mButtonDataRoam.isChecked()) {
-                    PersistableBundle carrierConfig =
-                            PhoneGlobals.getInstance().getCarrierConfigForSubId(mSubId);
+                    PersistableBundle carrierConfig = mCarrierConfigManager.getConfigForSubId(
+                            mSubId);
                     if (carrierConfig != null && carrierConfig.getBoolean(
                             CarrierConfigManager.KEY_DISABLE_CHARGE_INDICATION_BOOL)) {
                         mTelephonyManager.setDataRoamingEnabled(true);
@@ -1577,35 +1588,35 @@ public class MobileNetworkSettings extends Activity  {
 
         private void UpdatePreferredNetworkModeSummary(int NetworkMode) {
             switch(NetworkMode) {
-                case Phone.NT_MODE_TDSCDMA_GSM_WCDMA:
+                case TelephonyManager.NETWORK_MODE_TDSCDMA_GSM_WCDMA:
                     mButtonPreferredNetworkMode.setSummary(
                             R.string.preferred_network_mode_tdscdma_gsm_wcdma_summary);
                     break;
-                case Phone.NT_MODE_TDSCDMA_GSM:
+                case TelephonyManager.NETWORK_MODE_TDSCDMA_GSM:
                     mButtonPreferredNetworkMode.setSummary(
                             R.string.preferred_network_mode_tdscdma_gsm_summary);
                     break;
-                case Phone.NT_MODE_WCDMA_PREF:
+                case TelephonyManager.NETWORK_MODE_WCDMA_PREF:
                     mButtonPreferredNetworkMode.setSummary(
                             R.string.preferred_network_mode_wcdma_perf_summary);
                     break;
-                case Phone.NT_MODE_GSM_ONLY:
+                case TelephonyManager.NETWORK_MODE_GSM_ONLY:
                     mButtonPreferredNetworkMode.setSummary(
                             R.string.preferred_network_mode_gsm_only_summary);
                     break;
-                case Phone.NT_MODE_TDSCDMA_WCDMA:
+                case TelephonyManager.NETWORK_MODE_TDSCDMA_WCDMA:
                     mButtonPreferredNetworkMode.setSummary(
                             R.string.preferred_network_mode_tdscdma_wcdma_summary);
                     break;
-                case Phone.NT_MODE_WCDMA_ONLY:
+                case TelephonyManager.NETWORK_MODE_WCDMA_ONLY:
                     mButtonPreferredNetworkMode.setSummary(
                             R.string.preferred_network_mode_wcdma_only_summary);
                     break;
-                case Phone.NT_MODE_GSM_UMTS:
+                case TelephonyManager.NETWORK_MODE_GSM_UMTS:
                     mButtonPreferredNetworkMode.setSummary(
                             R.string.preferred_network_mode_gsm_wcdma_summary);
                     break;
-                case Phone.NT_MODE_CDMA:
+                case TelephonyManager.NETWORK_MODE_CDMA_EVDO:
                     switch (mTelephonyManager.getLteOnCdmaMode()) {
                         case PhoneConstants.LTE_ON_CDMA_TRUE:
                             mButtonPreferredNetworkMode.setSummary(
@@ -1618,47 +1629,47 @@ public class MobileNetworkSettings extends Activity  {
                             break;
                     }
                     break;
-                case Phone.NT_MODE_CDMA_NO_EVDO:
+                case TelephonyManager.NETWORK_MODE_CDMA_NO_EVDO:
                     mButtonPreferredNetworkMode.setSummary(
                             R.string.preferred_network_mode_cdma_only_summary);
                     break;
-                case Phone.NT_MODE_EVDO_NO_CDMA:
+                case TelephonyManager.NETWORK_MODE_EVDO_NO_CDMA:
                     mButtonPreferredNetworkMode.setSummary(
                             R.string.preferred_network_mode_evdo_only_summary);
                     break;
-                case Phone.NT_MODE_LTE_TDSCDMA:
+                case TelephonyManager.NETWORK_MODE_LTE_TDSCDMA:
                     mButtonPreferredNetworkMode.setSummary(
                             R.string.preferred_network_mode_lte_tdscdma_summary);
                     break;
-                case Phone.NT_MODE_LTE_ONLY:
+                case TelephonyManager.NETWORK_MODE_LTE_ONLY:
                     mButtonPreferredNetworkMode.setSummary(
                             R.string.preferred_network_mode_lte_summary);
                     break;
-                case Phone.NT_MODE_LTE_TDSCDMA_GSM:
+                case TelephonyManager.NETWORK_MODE_LTE_TDSCDMA_GSM:
                     mButtonPreferredNetworkMode.setSummary(
                             R.string.preferred_network_mode_lte_tdscdma_gsm_summary);
                     break;
-                case Phone.NT_MODE_LTE_TDSCDMA_GSM_WCDMA:
+                case TelephonyManager.NETWORK_MODE_LTE_TDSCDMA_GSM_WCDMA:
                     mButtonPreferredNetworkMode.setSummary(
                             R.string.preferred_network_mode_lte_tdscdma_gsm_wcdma_summary);
                     break;
-                case Phone.NT_MODE_LTE_GSM_WCDMA:
+                case TelephonyManager.NETWORK_MODE_LTE_GSM_WCDMA:
                     mButtonPreferredNetworkMode.setSummary(
                             R.string.preferred_network_mode_lte_gsm_wcdma_summary);
                     break;
-                case Phone.NT_MODE_LTE_CDMA_AND_EVDO:
+                case TelephonyManager.NETWORK_MODE_LTE_CDMA_EVDO:
                     mButtonPreferredNetworkMode.setSummary(
                             R.string.preferred_network_mode_lte_cdma_evdo_summary);
                     break;
-                case Phone.NT_MODE_TDSCDMA_ONLY:
+                case TelephonyManager.NETWORK_MODE_TDSCDMA_ONLY:
                     mButtonPreferredNetworkMode.setSummary(
                             R.string.preferred_network_mode_tdscdma_summary);
                     break;
-                case Phone.NT_MODE_LTE_TDSCDMA_CDMA_EVDO_GSM_WCDMA:
+                case TelephonyManager.NETWORK_MODE_LTE_TDSCDMA_CDMA_EVDO_GSM_WCDMA:
                     mButtonPreferredNetworkMode.setSummary(
                             R.string.preferred_network_mode_lte_tdscdma_cdma_evdo_gsm_wcdma_summary);
                     break;
-                case Phone.NT_MODE_LTE_CDMA_EVDO_GSM_WCDMA:
+                case TelephonyManager.NETWORK_MODE_LTE_CDMA_EVDO_GSM_WCDMA:
                     if (mTelephonyManager.getPhoneType() == PhoneConstants.PHONE_TYPE_CDMA
                             || mIsGlobalCdma
                             || isWorldMode()) {
@@ -1669,19 +1680,19 @@ public class MobileNetworkSettings extends Activity  {
                                 R.string.preferred_network_mode_lte_summary);
                     }
                     break;
-                case Phone.NT_MODE_TDSCDMA_CDMA_EVDO_GSM_WCDMA:
+                case TelephonyManager.NETWORK_MODE_TDSCDMA_CDMA_EVDO_GSM_WCDMA:
                     mButtonPreferredNetworkMode.setSummary(
                             R.string.preferred_network_mode_tdscdma_cdma_evdo_gsm_wcdma_summary);
                     break;
-                case Phone.NT_MODE_GLOBAL:
+                case TelephonyManager.NETWORK_MODE_GLOBAL:
                     mButtonPreferredNetworkMode.setSummary(
                             R.string.preferred_network_mode_cdma_evdo_gsm_wcdma_summary);
                     break;
-                case Phone.NT_MODE_LTE_TDSCDMA_WCDMA:
+                case TelephonyManager.NETWORK_MODE_LTE_TDSCDMA_WCDMA:
                     mButtonPreferredNetworkMode.setSummary(
                             R.string.preferred_network_mode_lte_tdscdma_wcdma_summary);
                     break;
-                case Phone.NT_MODE_LTE_WCDMA:
+                case TelephonyManager.NETWORK_MODE_LTE_WCDMA:
                     mButtonPreferredNetworkMode.setSummary(
                             R.string.preferred_network_mode_lte_wcdma_summary);
                     break;
@@ -1693,38 +1704,40 @@ public class MobileNetworkSettings extends Activity  {
 
         private void UpdateEnabledNetworksValueAndSummary(int NetworkMode) {
             switch (NetworkMode) {
-                case Phone.NT_MODE_TDSCDMA_WCDMA:
-                case Phone.NT_MODE_TDSCDMA_GSM_WCDMA:
-                case Phone.NT_MODE_TDSCDMA_GSM:
+                case TelephonyManager.NETWORK_MODE_TDSCDMA_WCDMA:
+                case TelephonyManager.NETWORK_MODE_TDSCDMA_GSM_WCDMA:
+                case TelephonyManager.NETWORK_MODE_TDSCDMA_GSM:
                     mButtonEnabledNetworks.setValue(
-                            Integer.toString(Phone.NT_MODE_TDSCDMA_GSM_WCDMA));
+                            Integer.toString(TelephonyManager.NETWORK_MODE_TDSCDMA_GSM_WCDMA));
                     mButtonEnabledNetworks.setSummary(R.string.network_3G);
                     break;
-                case Phone.NT_MODE_WCDMA_ONLY:
-                case Phone.NT_MODE_GSM_UMTS:
-                case Phone.NT_MODE_WCDMA_PREF:
+                case TelephonyManager.NETWORK_MODE_WCDMA_ONLY:
+                case TelephonyManager.NETWORK_MODE_GSM_UMTS:
+                case TelephonyManager.NETWORK_MODE_WCDMA_PREF:
                     if (!mIsGlobalCdma) {
                         mButtonEnabledNetworks.setValue(
-                                Integer.toString(Phone.NT_MODE_WCDMA_PREF));
+                                Integer.toString(TelephonyManager.NETWORK_MODE_WCDMA_PREF));
                         mButtonEnabledNetworks.setSummary(R.string.network_3G);
                     } else {
                         mButtonEnabledNetworks.setValue(
-                                Integer.toString(Phone.NT_MODE_LTE_CDMA_EVDO_GSM_WCDMA));
+                                Integer.toString(TelephonyManager
+                                        .NETWORK_MODE_LTE_CDMA_EVDO_GSM_WCDMA));
                         mButtonEnabledNetworks.setSummary(R.string.network_global);
                     }
                     break;
-                case Phone.NT_MODE_GSM_ONLY:
+                case TelephonyManager.NETWORK_MODE_GSM_ONLY:
                     if (!mIsGlobalCdma) {
                         mButtonEnabledNetworks.setValue(
-                                Integer.toString(Phone.NT_MODE_GSM_ONLY));
+                                Integer.toString(TelephonyManager.NETWORK_MODE_GSM_ONLY));
                         mButtonEnabledNetworks.setSummary(R.string.network_2G);
                     } else {
                         mButtonEnabledNetworks.setValue(
-                                Integer.toString(Phone.NT_MODE_LTE_CDMA_EVDO_GSM_WCDMA));
+                                Integer.toString(TelephonyManager
+                                        .NETWORK_MODE_LTE_CDMA_EVDO_GSM_WCDMA));
                         mButtonEnabledNetworks.setSummary(R.string.network_global);
                     }
                     break;
-                case Phone.NT_MODE_LTE_GSM_WCDMA:
+                case TelephonyManager.NETWORK_MODE_LTE_GSM_WCDMA:
                     if (isWorldMode()) {
                         mButtonEnabledNetworks.setSummary(
                                 R.string.preferred_network_mode_lte_gsm_umts_summary);
@@ -1732,20 +1745,21 @@ public class MobileNetworkSettings extends Activity  {
                         controlGsmOptions(true);
                         break;
                     }
-                case Phone.NT_MODE_LTE_ONLY:
-                case Phone.NT_MODE_LTE_WCDMA:
+                case TelephonyManager.NETWORK_MODE_LTE_ONLY:
+                case TelephonyManager.NETWORK_MODE_LTE_WCDMA:
                     if (!mIsGlobalCdma) {
                         mButtonEnabledNetworks.setValue(
-                                Integer.toString(Phone.NT_MODE_LTE_GSM_WCDMA));
+                                Integer.toString(TelephonyManager.NETWORK_MODE_LTE_GSM_WCDMA));
                         mButtonEnabledNetworks.setSummary((mShow4GForLTE == true)
                                 ? R.string.network_4G : R.string.network_lte);
                     } else {
                         mButtonEnabledNetworks.setValue(
-                                Integer.toString(Phone.NT_MODE_LTE_CDMA_EVDO_GSM_WCDMA));
+                                Integer.toString(TelephonyManager
+                                        .NETWORK_MODE_LTE_CDMA_EVDO_GSM_WCDMA));
                         mButtonEnabledNetworks.setSummary(R.string.network_global);
                     }
                     break;
-                case Phone.NT_MODE_LTE_CDMA_AND_EVDO:
+                case TelephonyManager.NETWORK_MODE_LTE_CDMA_EVDO:
                     if (isWorldMode()) {
                         mButtonEnabledNetworks.setSummary(
                                 R.string.preferred_network_mode_lte_cdma_summary);
@@ -1753,41 +1767,43 @@ public class MobileNetworkSettings extends Activity  {
                         controlGsmOptions(false);
                     } else {
                         mButtonEnabledNetworks.setValue(
-                                Integer.toString(Phone.NT_MODE_LTE_CDMA_AND_EVDO));
+                                Integer.toString(TelephonyManager.NETWORK_MODE_LTE_CDMA_EVDO));
                         mButtonEnabledNetworks.setSummary(R.string.network_lte);
                     }
                     break;
-                case Phone.NT_MODE_TDSCDMA_CDMA_EVDO_GSM_WCDMA:
+                case TelephonyManager.NETWORK_MODE_TDSCDMA_CDMA_EVDO_GSM_WCDMA:
                     mButtonEnabledNetworks.setValue(
-                            Integer.toString(Phone.NT_MODE_TDSCDMA_CDMA_EVDO_GSM_WCDMA));
+                            Integer.toString(TelephonyManager
+                                    .NETWORK_MODE_TDSCDMA_CDMA_EVDO_GSM_WCDMA));
                     mButtonEnabledNetworks.setSummary(R.string.network_3G);
                     break;
-                case Phone.NT_MODE_CDMA:
-                case Phone.NT_MODE_EVDO_NO_CDMA:
-                case Phone.NT_MODE_GLOBAL:
+                case TelephonyManager.NETWORK_MODE_CDMA_EVDO:
+                case TelephonyManager.NETWORK_MODE_EVDO_NO_CDMA:
+                case TelephonyManager.NETWORK_MODE_GLOBAL:
                     mButtonEnabledNetworks.setValue(
-                            Integer.toString(Phone.NT_MODE_CDMA));
+                            Integer.toString(TelephonyManager.NETWORK_MODE_CDMA_EVDO));
                     mButtonEnabledNetworks.setSummary(R.string.network_3G);
                     break;
-                case Phone.NT_MODE_CDMA_NO_EVDO:
+                case TelephonyManager.NETWORK_MODE_CDMA_NO_EVDO:
                     mButtonEnabledNetworks.setValue(
-                            Integer.toString(Phone.NT_MODE_CDMA_NO_EVDO));
+                            Integer.toString(TelephonyManager.NETWORK_MODE_CDMA_NO_EVDO));
                     mButtonEnabledNetworks.setSummary(R.string.network_1x);
                     break;
-                case Phone.NT_MODE_TDSCDMA_ONLY:
+                case TelephonyManager.NETWORK_MODE_TDSCDMA_ONLY:
                     mButtonEnabledNetworks.setValue(
-                            Integer.toString(Phone.NT_MODE_TDSCDMA_ONLY));
+                            Integer.toString(TelephonyManager.NETWORK_MODE_TDSCDMA_ONLY));
                     mButtonEnabledNetworks.setSummary(R.string.network_3G);
                     break;
-                case Phone.NT_MODE_LTE_TDSCDMA_GSM:
-                case Phone.NT_MODE_LTE_TDSCDMA_GSM_WCDMA:
-                case Phone.NT_MODE_LTE_TDSCDMA:
-                case Phone.NT_MODE_LTE_TDSCDMA_WCDMA:
-                case Phone.NT_MODE_LTE_TDSCDMA_CDMA_EVDO_GSM_WCDMA:
-                case Phone.NT_MODE_LTE_CDMA_EVDO_GSM_WCDMA:
+                case TelephonyManager.NETWORK_MODE_LTE_TDSCDMA_GSM:
+                case TelephonyManager.NETWORK_MODE_LTE_TDSCDMA_GSM_WCDMA:
+                case TelephonyManager.NETWORK_MODE_LTE_TDSCDMA:
+                case TelephonyManager.NETWORK_MODE_LTE_TDSCDMA_WCDMA:
+                case TelephonyManager.NETWORK_MODE_LTE_TDSCDMA_CDMA_EVDO_GSM_WCDMA:
+                case TelephonyManager.NETWORK_MODE_LTE_CDMA_EVDO_GSM_WCDMA:
                     if (isSupportTdscdma()) {
                         mButtonEnabledNetworks.setValue(
-                                Integer.toString(Phone.NT_MODE_LTE_TDSCDMA_CDMA_EVDO_GSM_WCDMA));
+                                Integer.toString(TelephonyManager
+                                        .NETWORK_MODE_LTE_TDSCDMA_CDMA_EVDO_GSM_WCDMA));
                         mButtonEnabledNetworks.setSummary(R.string.network_lte);
                     } else {
                         if (isWorldMode()) {
@@ -1795,7 +1811,8 @@ public class MobileNetworkSettings extends Activity  {
                             controlGsmOptions(false);
                         }
                         mButtonEnabledNetworks.setValue(
-                                Integer.toString(Phone.NT_MODE_LTE_CDMA_EVDO_GSM_WCDMA));
+                                Integer.toString(TelephonyManager
+                                        .NETWORK_MODE_LTE_CDMA_EVDO_GSM_WCDMA));
                         if (mTelephonyManager.getPhoneType() == PhoneConstants.PHONE_TYPE_CDMA
                                 || mIsGlobalCdma
                                 || isWorldMode()) {
@@ -1847,7 +1864,7 @@ public class MobileNetworkSettings extends Activity  {
                     TelecomManager.from(getContext()).getSimCallManager();
 
             if (simCallManager != null) {
-                Intent intent = PhoneAccountSettingsFragment.buildPhoneAccountConfigureIntent(
+                Intent intent = MobileNetworkSettings.buildPhoneAccountConfigureIntent(
                         getContext(), simCallManager);
                 PackageManager pm = getContext().getPackageManager();
                 List<ResolveInfo> resolutions = pm.queryIntentActivities(intent, 0);
@@ -1888,8 +1905,7 @@ public class MobileNetworkSettings extends Activity  {
                 return;
             }
 
-            PersistableBundle carrierConfig = PhoneGlobals.getInstance()
-                    .getCarrierConfigForSubId(mSubId);
+            PersistableBundle carrierConfig = mCarrierConfigManager.getConfigForSubId(mSubId);
 
             if ((mImsMgr == null
                     || !mImsMgr.isVolteEnabledByPlatform()
@@ -1912,8 +1928,7 @@ public class MobileNetworkSettings extends Activity  {
                 return;
             }
 
-            PersistableBundle carrierConfig = PhoneGlobals.getInstance()
-                    .getCarrierConfigForSubId(mSubId);
+            PersistableBundle carrierConfig = mCarrierConfigManager.getConfigForSubId(mSubId);
 
             if (mImsMgr != null
                     && mImsMgr.isVtEnabledByPlatform()
@@ -1934,6 +1949,22 @@ public class MobileNetworkSettings extends Activity  {
                 }
             } else {
                 mCallingCategory.removePreference(mVideoCallingPref);
+            }
+        }
+
+        private void updatePreferredNetworkType() {
+            boolean enabled = mTelephonyManager.getCallState(
+                    mSubId) == TelephonyManager.CALL_STATE_IDLE
+                    && hasActiveSubscriptions();
+            Log.i(LOG_TAG, "updatePreferredNetworkType: " + enabled);
+            // TODO: Disentangle enabled networks vs preferred network mode, it looks like
+            // both buttons are shown to the user as "Preferred network type" and the options change
+            // based on what looks like World mode.
+            if (mButtonEnabledNetworks != null) {
+                mButtonEnabledNetworks.setEnabled(enabled);
+            }
+            if (mButtonPreferredNetworkMode != null) {
+                mButtonPreferredNetworkMode.setEnabled(enabled);
             }
         }
 
@@ -2013,7 +2044,7 @@ public class MobileNetworkSettings extends Activity  {
                 return;
             }
 
-            updateGsmUmtsOptions(this, prefSet, mSubId, mNetworkQueryService);
+            updateGsmUmtsOptions(this, prefSet, mSubId);
 
             PreferenceCategory networkOperatorCategory =
                     (PreferenceCategory) prefSet.findPreference(
@@ -2166,14 +2197,14 @@ public class MobileNetworkSettings extends Activity  {
         }
 
         private void updateGsmUmtsOptions(PreferenceFragment prefFragment,
-                PreferenceScreen prefScreen, final int subId, INetworkQueryService queryService) {
+                PreferenceScreen prefScreen, final int subId) {
             // We don't want to re-create GsmUmtsOptions if already exists. Otherwise, the
             // preferences inside it will also be re-created which causes unexpected behavior.
             // For example, the open dialog gets dismissed or detached after pause / resume.
             if (mGsmUmtsOptions == null) {
-                mGsmUmtsOptions = new GsmUmtsOptions(prefFragment, prefScreen, subId, queryService);
+                mGsmUmtsOptions = new GsmUmtsOptions(prefFragment, prefScreen, subId);
             } else {
-                mGsmUmtsOptions.update(subId, queryService);
+                mGsmUmtsOptions.update(subId);
             }
         }
 

@@ -17,16 +17,12 @@ package com.android.phone;
 
 import android.app.ActionBar;
 import android.app.Activity;
-import android.content.ComponentName;
 import android.content.Context;
-import android.content.Intent;
-import android.content.ServiceConnection;
+import android.content.pm.PackageManager;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.Handler;
-import android.os.IBinder;
 import android.os.Message;
-import android.os.RemoteException;
 import android.preference.Preference;
 import android.preference.PreferenceCategory;
 import android.preference.PreferenceFragment;
@@ -46,6 +42,7 @@ import android.view.ViewGroup;
 import com.android.internal.logging.MetricsLogger;
 import com.android.internal.logging.nano.MetricsProto.MetricsEvent;
 import com.android.internal.telephony.OperatorInfo;
+import com.android.phone.NetworkScanHelper.NetworkScanCallback;
 import com.android.settingslib.utils.ThreadUtils;
 
 import java.util.ArrayList;
@@ -53,6 +50,8 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 /**
  * "Choose network" settings UI for the Phone app.
@@ -84,6 +83,9 @@ public class NetworkSelectSetting extends PreferenceFragment {
     private NetworkOperatorPreference mSelectedNetworkOperatorPreference;
     private TelephonyManager mTelephonyManager;
     private List<String> mForbiddenPlmns;
+    private boolean mShow4GForLTE;
+    private NetworkScanHelper mNetworkScanHelper;
+    private final ExecutorService mNetworkScanExecutor = Executors.newFixedThreadPool(1);
 
     private final Runnable mUpdateNetworkOperatorsRunnable = () -> {
         updateNetworkOperatorsPreferenceCategory();
@@ -116,6 +118,17 @@ public class NetworkSelectSetting extends PreferenceFragment {
         mStatusMessagePreference = new Preference(getContext());
         mSelectedNetworkOperatorPreference = null;
         mTelephonyManager = TelephonyManager.from(getContext()).createForSubscriptionId(mSubId);
+        mNetworkScanHelper = new NetworkScanHelper(
+                mTelephonyManager, mCallback, mNetworkScanExecutor);
+        try {
+            Context con = getActivity().createPackageContext("com.android.systemui", 0);
+            int id = con.getResources().getIdentifier("config_show4GForLTE",
+                    "bool", "com.android.systemui");
+            mShow4GForLTE = con.getResources().getBoolean(id);
+        } catch (PackageManager.NameNotFoundException e) {
+            Log.e(TAG, "NameNotFoundException for show4GFotLTE");
+            mShow4GForLTE = false;
+        }
         setRetainInstance(true);
     }
 
@@ -162,7 +175,7 @@ public class NetworkSelectSetting extends PreferenceFragment {
             @Override
             protected void onPostExecute(List<String> result) {
                 mForbiddenPlmns = result;
-                bindNetworkQueryService();
+                loadNetworksList();
             }
         }.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
     }
@@ -218,7 +231,7 @@ public class NetworkSelectSetting extends PreferenceFragment {
                 ThreadUtils.postOnBackgroundThread(() -> {
                     Message msg = mHandler.obtainMessage(EVENT_SET_NETWORK_SELECTION_MANUALLY_DONE);
                     msg.obj = mTelephonyManager.setNetworkSelectionModeManual(
-                            operatorInfo.getOperatorNumeric(), true /* persistSelection */);
+                            operatorInfo, true /* persistSelection */);
                     msg.sendToTarget();
                 });
 
@@ -250,8 +263,6 @@ public class NetworkSelectSetting extends PreferenceFragment {
         if (DBG) logd("onStop");
         getView().removeCallbacks(mUpdateNetworkOperatorsRunnable);
         stopNetworkQuery();
-        // Unbind the NetworkQueryService
-        unbindNetworkQueryService();
     }
 
     private final Handler mHandler = new Handler() {
@@ -269,7 +280,6 @@ public class NetworkSelectSetting extends PreferenceFragment {
                         mSelectedNetworkOperatorPreference.setSummary(R.string.network_connected);
                     } else {
                         if (DBG) logd("manual network selection: failed! ");
-                        updateNetworkSelection();
                         // Set summary as "Couldn't connect" to the selected network.
                         mSelectedNetworkOperatorPreference.setSummary(
                                 R.string.network_could_not_connect);
@@ -311,52 +321,23 @@ public class NetworkSelectSetting extends PreferenceFragment {
     private void loadNetworksList() {
         if (DBG) logd("load networks list...");
         setProgressBarVisible(true);
-        try {
-            if (mNetworkQueryService != null) {
-                if (DBG) logd("start network query");
-                mNetworkQueryService
-                        .startNetworkQuery(mCallback, mSubId, true /* is incremental result */);
-            } else {
-                if (DBG) logd("unable to start network query, mNetworkQueryService is null");
-                addMessagePreference(R.string.network_query_error);
-            }
-        } catch (RemoteException e) {
-            loge("loadNetworksList: exception from startNetworkQuery " + e);
-            addMessagePreference(R.string.network_query_error);
-        }
+        mNetworkScanHelper.startNetworkScan(
+                NetworkScanHelper.NETWORK_SCAN_TYPE_INCREMENTAL_RESULTS);
     }
 
-    /**
-     * This implementation of INetworkQueryServiceCallback is used to receive
-     * callback notifications from the network query service.
-     */
-    private final INetworkQueryServiceCallback mCallback = new INetworkQueryServiceCallback.Stub() {
-
-        /** Returns the scan results to the user, this callback will be called at lease one time. */
+    private final NetworkScanHelper.NetworkScanCallback mCallback = new NetworkScanCallback() {
         public void onResults(List<CellInfo> results) {
             if (DBG) logd("get scan results.");
             Message msg = mHandler.obtainMessage(EVENT_NETWORK_SCAN_RESULTS, results);
             msg.sendToTarget();
         }
 
-        /**
-         * Informs the user that the scan has stopped.
-         *
-         * This callback will be called when the scan is finished or cancelled by the user.
-         * The related NetworkScanRequest will be deleted after this callback.
-         */
         public void onComplete() {
             if (DBG) logd("network scan completed.");
             Message msg = mHandler.obtainMessage(EVENT_NETWORK_SCAN_COMPLETED);
             msg.sendToTarget();
         }
 
-        /**
-         * Informs the user that there is some error about the scan.
-         *
-         * This callback will be called whenever there is any error about the scan, and the scan
-         * will be terminated. onComplete() will NOT be called.
-         */
         public void onError(int error) {
             if (DBG) logd("get onError callback with error code: " + error);
             Message msg = mHandler.obtainMessage(EVENT_NETWORK_SCAN_ERROR, error, 0 /* arg2 */);
@@ -364,9 +345,6 @@ public class NetworkSelectSetting extends PreferenceFragment {
         }
     };
 
-    /**
-     * Updates network operators from {@link INetworkQueryServiceCallback#onResults()}.
-     */
     private void updateNetworkOperators() {
         if (DBG) logd("updateNetworkOperators");
         if (getActivity() != null) {
@@ -394,7 +372,7 @@ public class NetworkSelectSetting extends PreferenceFragment {
         for (int index = 0; index < mCellInfoList.size(); index++) {
             if (!mCellInfoList.get(index).isRegistered()) {
                 NetworkOperatorPreference pref = new NetworkOperatorPreference(
-                        mCellInfoList.get(index), getContext(), mForbiddenPlmns);
+                        mCellInfoList.get(index), getContext(), mForbiddenPlmns, mShow4GForLTE);
                 pref.setKey(CellInfoUtil.getNetworkTitle(mCellInfoList.get(index)));
                 pref.setOrder(index);
                 mNetworkOperatorsPreferences.addPreference(pref);
@@ -432,8 +410,8 @@ public class NetworkSelectSetting extends PreferenceFragment {
             CellInfo cellInfo = CellInfoUtil.wrapCellInfoWithCellIdentity(cellIdentity);
             if (cellInfo != null) {
                 if (DBG) logd("Currently registered cell: " + cellInfo.toString());
-                NetworkOperatorPreference pref =
-                        new NetworkOperatorPreference(cellInfo, getContext(), mForbiddenPlmns);
+                NetworkOperatorPreference pref = new NetworkOperatorPreference(
+                        cellInfo, getContext(), mForbiddenPlmns, mShow4GForLTE);
                 pref.setTitle(mTelephonyManager.getNetworkOperatorName());
                 pref.setSummary(R.string.network_connected);
                 // Update the signal strength icon, since the default signalStrength value would be
@@ -513,8 +491,8 @@ public class NetworkSelectSetting extends PreferenceFragment {
         if (DBG) logd("addConnectedNetworkOperatorPreference");
         // Remove the current ConnectedNetworkOperatorsPreference
         removeConnectedNetworkOperatorPreference();
-        final NetworkOperatorPreference pref =
-                new NetworkOperatorPreference(cellInfo, getContext(), mForbiddenPlmns);
+        final NetworkOperatorPreference pref = new NetworkOperatorPreference(
+                cellInfo, getContext(), mForbiddenPlmns, mShow4GForLTE);
         pref.setSummary(R.string.network_connected);
         mConnectedNetworkOperatorsPreference.addPreference(pref);
         PreferenceScreen preferenceScreen = getPreferenceScreen();
@@ -571,79 +549,16 @@ public class NetworkSelectSetting extends PreferenceFragment {
         return new ArrayList<>(map.values());
     }
 
-    /**
-     * Service connection code for the NetworkQueryService.
-     * Handles the work of binding to a local object so that we can make
-     * the appropriate service calls.
-     */
-
-    /** Local service interface */
-    private INetworkQueryService mNetworkQueryService = null;
-    /** Flag indicating whether we have called bind on the service. */
-    boolean mShouldUnbind;
-
-    /** Service connection */
-    private final ServiceConnection mNetworkQueryServiceConnection = new ServiceConnection() {
-
-        /** Handle the task of binding the local object to the service */
-        public void onServiceConnected(ComponentName className, IBinder service) {
-            if (DBG) logd("connection created, binding local service.");
-            mNetworkQueryService = ((NetworkQueryService.LocalBinder) service).getService();
-            // Load the network list only when the service is well connected.
-            loadNetworksList();
-        }
-
-        /** Handle the task of cleaning up the local binding */
-        public void onServiceDisconnected(ComponentName className) {
-            if (DBG) logd("connection disconnected, cleaning local binding.");
-            mNetworkQueryService = null;
-        }
-    };
-
-    private void bindNetworkQueryService() {
-        if (DBG) logd("bindNetworkQueryService");
-        getContext().bindService(new Intent(getContext(), NetworkQueryService.class).setAction(
-                NetworkQueryService.ACTION_LOCAL_BINDER),
-                mNetworkQueryServiceConnection, Context.BIND_AUTO_CREATE);
-        mShouldUnbind = true;
-    }
-
-    private void unbindNetworkQueryService() {
-        if (DBG) logd("unbindNetworkQueryService");
-        if (mShouldUnbind) {
-            if (DBG) logd("mShouldUnbind is true");
-            // unbind the service.
-            getContext().unbindService(mNetworkQueryServiceConnection);
-            mShouldUnbind = false;
-        }
-    }
-
-    /**
-     * Call {@link NotificationMgr#updateNetworkSelection(int, int)} to send notification about
-     * no service of user selected operator
-     */
-    private void updateNetworkSelection() {
-        if (DBG) logd("Update notification about no service of user selected operator");
-        final PhoneGlobals app = PhoneGlobals.getInstance();
-        if (SubscriptionManager.isValidSubscriptionId(mSubId)) {
-            ServiceState ss = mTelephonyManager.getServiceState();
-            if (ss != null) {
-                app.notificationMgr.updateNetworkSelection(ss.getState(), mSubId);
-            }
-        }
-    }
-
     private void stopNetworkQuery() {
-        // Stop the network query process
-        try {
-            if (mNetworkQueryService != null) {
-                if (DBG) logd("Stop network query");
-                mNetworkQueryService.stopNetworkQuery();
-                mNetworkQueryService.unregisterCallback(mCallback);
-            }
-        } catch (RemoteException e) {
-            loge("Exception from stopNetworkQuery " + e);
+        if (mNetworkScanHelper != null) {
+            mNetworkScanHelper.stopNetworkQuery();
         }
+    }
+
+    @Override
+    public void onDestroy() {
+        mNetworkScanExecutor.shutdown();
+        super.onDestroy();
     }
 
     private void logd(String msg) {

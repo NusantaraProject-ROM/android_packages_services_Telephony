@@ -29,6 +29,7 @@ import android.telephony.SubscriptionManager;
 import android.telephony.TelephonyManager;
 import android.util.AttributeSet;
 import android.util.Log;
+import android.widget.Toast;
 
 import com.android.internal.logging.MetricsLogger;
 import com.android.internal.logging.nano.MetricsProto.MetricsEvent;
@@ -93,12 +94,11 @@ public class NetworkOperators extends PreferenceCategory
     }
 
     /**
-     * Update NetworkOperators instance if like subId or queryService are updated.
+     * Update NetworkOperators instance if like subId is updated.
      *
-     * @param subId        Corresponding subscription ID of this network.
-     * @param queryService The service to do network queries.
+     * @param subId Corresponding subscription ID of this network.
      */
-    protected void update(final int subId, INetworkQueryService queryService) {
+    protected void update(final int subId) {
         mSubId = subId;
         mTelephonyManager = TelephonyManager.from(getContext()).createForSubscriptionId(mSubId);
 
@@ -117,7 +117,7 @@ public class NetworkOperators extends PreferenceCategory
             }
         } else {
             if (mNetworkSelect != null) {
-                mNetworkSelect.initialize(mSubId, queryService, this, mProgressDialog);
+                mNetworkSelect.initialize(mSubId, this, mProgressDialog);
             }
         }
         getNetworkSelectionMode();
@@ -193,25 +193,12 @@ public class NetworkOperators extends PreferenceCategory
 
     // Used by both mAutoSelect and mNetworkSelect buttons.
     protected void displayNetworkSelectionFailed() {
-        String status = getContext().getResources().getString(R.string.connect_later);
-
-        final PhoneGlobals app = PhoneGlobals.getInstance();
-        app.notificationMgr.postTransientNotification(
-                NotificationMgr.NETWORK_SELECTION_NOTIFICATION, status);
-
-        ServiceState ss = mTelephonyManager.getServiceStateForSubscriber(mSubId);
-        if (ss != null) {
-            app.notificationMgr.updateNetworkSelection(ss.getState(), mSubId);
-        }
+        Toast.makeText(getContext(), R.string.connect_later, Toast.LENGTH_LONG).show();
     }
 
     // Used by both mAutoSelect and mNetworkSelect buttons.
     protected void displayNetworkSelectionSucceeded() {
-        String status = getContext().getResources().getString(R.string.registration_done);
-
-        final PhoneGlobals app = PhoneGlobals.getInstance();
-        app.notificationMgr.postTransientNotification(
-                NotificationMgr.NETWORK_SELECTION_NOTIFICATION, status);
+        Toast.makeText(getContext(), R.string.registration_done, Toast.LENGTH_LONG).show();
     }
 
     private void selectNetworkAutomatic(boolean autoSelect) {
