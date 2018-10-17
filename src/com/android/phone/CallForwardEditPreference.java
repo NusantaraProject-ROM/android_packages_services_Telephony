@@ -155,6 +155,11 @@ public class CallForwardEditPreference extends EditPhoneNumberPreference {
                 && mPhone.isUtEnabled();
     }
 
+    void restoreCallForwardInfo(CallForwardInfo cf) {
+        handleCallForwardResult(cf);
+        updateSummaryText();
+    }
+
     @Override
     protected void onBindDialogView(View view) {
         // default the button clicked to be the cancel button.
@@ -179,7 +184,15 @@ public class CallForwardEditPreference extends EditPhoneNumberPreference {
             int action = (isToggled() || (mButtonClicked == DialogInterface.BUTTON_POSITIVE)) ?
                     CommandsInterface.CF_ACTION_REGISTRATION :
                     CommandsInterface.CF_ACTION_DISABLE;
-            int time = (reason != CommandsInterface.CF_REASON_NO_REPLY) ? 0 : 20;
+            int time = 0;
+            if (reason == CommandsInterface.CF_REASON_NO_REPLY) {
+                PersistableBundle carrierConfig = PhoneGlobals.getInstance()
+                        .getCarrierConfigForSubId(mPhone.getSubId());
+                if (carrierConfig.getBoolean(
+                        CarrierConfigManager.KEY_SUPPORT_NO_REPLY_TIMER_FOR_CFNRY_BOOL, true)) {
+                    time = 20;
+                }
+            }
             final String number = getPhoneNumber();
 
             Log.d(LOG_TAG, "callForwardInfo=" + callForwardInfo);

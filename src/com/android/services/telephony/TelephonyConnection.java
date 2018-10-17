@@ -39,6 +39,7 @@ import android.telephony.DisconnectCause;
 import android.telephony.PhoneNumberUtils;
 import android.telephony.SubscriptionInfo;
 import android.telephony.SubscriptionManager;
+import android.telephony.ServiceState;
 import android.telephony.TelephonyManager;
 import android.telephony.ims.ImsCallProfile;
 import android.text.TextUtils;
@@ -114,6 +115,7 @@ abstract class TelephonyConnection extends Connection implements Holdable,
     static final String CONF_SUPPORT_IND_EXTRA_KEY = "ConfSupportInd";
 
     private SuppServiceNotification mSsNotification = null;
+    private static final int MSG_SET_CALL_RADIO_TECH = 19;
 
     private final Handler mHandler = new Handler(Looper.getMainLooper()) {
         @Override
@@ -288,6 +290,31 @@ abstract class TelephonyConnection extends Connection implements Holdable,
                     Log.d(this, "MSG_CONNECTION_REMOVED");
                     // Some connection has disconnected. Re fresh disable add call property.
                     refreshDisableAddCall();
+                    break;
+
+                case MSG_SET_CALL_RADIO_TECH:
+                    int vrat = (int) msg.obj;
+                    // Check whether Wi-Fi call tech is changed, it means call radio tech is:
+                    //  a) changed from IWLAN to other value, or
+                    //  b) changed from other value to IWLAN.
+                    //
+                    // In other word, below conditions are all met:
+                    // 1) {@link #getCallRadioTech} is different from new vrat
+                    // 2) Current call radio technology indicates Wi-Fi call, i.e. {@link #isWifi}
+                    //    is true, or new vrat indicates Wi-Fi call.
+                    boolean isWifiTechChange = getCallRadioTech() != vrat
+                            && (isWifi() || vrat == ServiceState.RIL_RADIO_TECHNOLOGY_IWLAN);
+
+                    // Step 1) Updates call radio tech firstly, so that afterwards Wi-Fi related
+                    // update actions are taken correctly.
+                    setCallRadioTech(vrat);
+
+                    // Step 2) Handles Wi-Fi call tech change.
+                    if (isWifiTechChange) {
+                        updateConnectionProperties();
+                        updateStatusHints();
+                        refreshDisableAddCall();
+                    }
                     break;
             }
         }
@@ -482,14 +509,14 @@ abstract class TelephonyConnection extends Connection implements Holdable,
         }
 
         /**
-         * Used by {@link com.android.internal.telephony.Connection} to report a change in whether
-         * the call is being made over a wifi network.
+         * Used by {@link com.android.internal.telephony.Connection} to report a change for
+         * the call radio technology.
          *
-         * @param isWifi True if call is made over wifi.
+         * @param vrat the RIL Voice Radio Technology used for current connection.
          */
         @Override
-        public void onWifiChanged(boolean isWifi) {
-            setWifi(isWifi);
+        public void onCallRadioTechChanged(@ServiceState.RilRadioTechnology int vrat) {
+            mHandler.obtainMessage(MSG_SET_CALL_RADIO_TECH, vrat).sendToTarget();
         }
 
         /**
@@ -636,6 +663,11 @@ abstract class TelephonyConnection extends Connection implements Holdable,
                 com.android.internal.telephony.Connection newConnection) {
             setOriginalConnection(newConnection);
         }
+
+        @Override
+        public void onIsNetworkEmergencyCallChanged(boolean isEmergencyCall) {
+            setIsNetworkIdentifiedEmergencyCall(isEmergencyCall);
+        }
     };
 
     protected com.android.internal.telephony.Connection mOriginalConnection;
@@ -660,13 +692,6 @@ abstract class TelephonyConnection extends Connection implements Holdable,
     private int mOriginalConnectionCapabilities;
 
     /**
-     * Determines if the {@link TelephonyConnection} is using wifi.
-     * This is used when {@link TelephonyConnection#updateConnectionProperties()} is called to
-     * indicate whether a call has the {@link Connection#PROPERTY_WIFI} property.
-     */
-    private boolean mIsWifi;
-
-    /**
      * Determines the audio quality is high for the {@link TelephonyConnection}.
      * This is used when {@link TelephonyConnection#updateConnectionProperties}} is called to
      * indicate whether a call has the {@link Connection#PROPERTY_HIGH_DEF_AUDIO} property.
@@ -679,6 +704,15 @@ abstract class TelephonyConnection extends Connection implements Holdable,
      * the network will treat the call as an emergency call.
      */
     private boolean mTreatAsEmergencyCall;
+
+    /**
+     * Indicates whether the network has identified this call as an emergency call.  Where
+     * {@link #mTreatAsEmergencyCall} is based on comparing dialed numbers to a list of known
+     * emergency numbers, this property is based on whether the network itself has identified the
+     * call as an emergency call (which can be the case for an incoming call from emergency
+     * services).
+     */
+    private boolean mIsNetworkIdentifiedEmergencyCall;
 
     /**
      * For video calls, indicates whether the outgoing video for the call can be paused using
@@ -720,6 +754,11 @@ abstract class TelephonyConnection extends Connection implements Holdable,
      * connection.
      */
     private boolean mIsHoldable;
+
+    /**
+     * Indicates whether TTY is enabled; used to determine whether a call is VT capable.
+     */
+    private boolean mIsTtyEnabled;
 
     /**
      * Indicates whether this call is using assisted dialing.
@@ -915,7 +954,7 @@ abstract class TelephonyConnection extends Connection implements Holdable,
             if (originalConnection.isRttEnabledForCall()) {
                 originalConnection.setCurrentRttTextStream(textStream);
             } else {
-                originalConnection.sendRttModifyRequest(textStream);
+                originalConnection.startRtt(textStream);
             }
         } else {
             Log.w(this, "onStartRtt - not in IMS, so RTT cannot be enabled.");
@@ -924,7 +963,16 @@ abstract class TelephonyConnection extends Connection implements Holdable,
 
     @Override
     public void onStopRtt() {
-        Log.i(this, "Stopping RTT currently not supported. Doing nothing.");
+        if (isImsConnection()) {
+            ImsPhoneConnection originalConnection = (ImsPhoneConnection) mOriginalConnection;
+            if (originalConnection.isRttEnabledForCall()) {
+                originalConnection.stopRtt();
+            } else {
+                Log.w(this, "onStopRtt - not in RTT call, ignoring");
+            }
+        } else {
+            Log.w(this, "onStopRtt - not in IMS, ignoring");
+        }
     }
 
     @Override
@@ -952,6 +1000,13 @@ abstract class TelephonyConnection extends Connection implements Holdable,
             Log.v(this, "Holding active call");
             try {
                 Phone phone = mOriginalConnection.getCall().getPhone();
+
+                // New behavior for IMS -- don't use the clunky switchHoldingAndActive logic.
+                if (phone.getPhoneType() == PhoneConstants.PHONE_TYPE_IMS) {
+                    ImsPhone imsPhone = (ImsPhone) phone;
+                    imsPhone.holdActiveCall();
+                    return;
+                }
                 Call ringingCall = phone.getRingingCall();
 
                 // Although the method says switchHoldingAndActive, it eventually calls a RIL method
@@ -981,6 +1036,13 @@ abstract class TelephonyConnection extends Connection implements Holdable,
         Log.v(this, "performUnhold");
         if (Call.State.HOLDING == mConnectionState) {
             try {
+                Phone phone = mOriginalConnection.getCall().getPhone();
+                // New behavior for IMS -- don't use the clunky switchHoldingAndActive logic.
+                if (phone.getPhoneType() == PhoneConstants.PHONE_TYPE_IMS) {
+                    ImsPhone imsPhone = (ImsPhone) phone;
+                    imsPhone.unholdHeldCall();
+                    return;
+                }
                 // Here's the deal--Telephony hold/unhold is weird because whenever there exists
                 // more than one call, one of them must always be active. In other words, if you
                 // have an active call and holding call, and you put the active call on hold, it
@@ -1100,7 +1162,7 @@ abstract class TelephonyConnection extends Connection implements Holdable,
 
         newProperties = changeBitmask(newProperties, PROPERTY_HIGH_DEF_AUDIO,
                 hasHighDefAudioProperty());
-        newProperties = changeBitmask(newProperties, PROPERTY_WIFI, mIsWifi);
+        newProperties = changeBitmask(newProperties, PROPERTY_WIFI, isWifi());
         newProperties = changeBitmask(newProperties, PROPERTY_IS_EXTERNAL_CALL,
                 isExternalConnection());
         newProperties = changeBitmask(newProperties, PROPERTY_HAS_CDMA_VOICE_PRIVACY,
@@ -1108,6 +1170,8 @@ abstract class TelephonyConnection extends Connection implements Holdable,
         newProperties = changeBitmask(newProperties, PROPERTY_ASSISTED_DIALING_USED,
                 mIsUsingAssistedDialing);
         newProperties = changeBitmask(newProperties, PROPERTY_IS_RTT, isRtt());
+        newProperties = changeBitmask(newProperties, PROPERTY_NETWORK_IDENTIFIED_EMERGENCY_CALL,
+                isNetworkIdentifiedEmergencyCall());
 
         if (getConnectionProperties() != newProperties) {
             setConnectionProperties(newProperties);
@@ -1196,11 +1260,13 @@ abstract class TelephonyConnection extends Connection implements Holdable,
         // Set video state and capabilities
         setVideoState(mOriginalConnection.getVideoState());
         setOriginalConnectionCapabilities(mOriginalConnection.getConnectionCapabilities());
-        setWifi(mOriginalConnection.isWifi());
+        setIsNetworkIdentifiedEmergencyCall(mOriginalConnection.isNetworkIdentifiedEmergencyCall());
         setAudioModeIsVoip(mOriginalConnection.getAudioModeIsVoip());
         setVideoProvider(mOriginalConnection.getVideoProvider());
         setAudioQuality(mOriginalConnection.getAudioQuality());
         setTechnologyTypeExtra();
+
+        setCallRadioTech(mOriginalConnection.getCallRadioTech());
 
         // Post update of extras to the handler; extras are updated via the handler to ensure thread
         // safety. The Extras Bundle is cloned in case the original extras are modified while they
@@ -1343,7 +1409,7 @@ abstract class TelephonyConnection extends Connection implements Holdable,
 
         if (isCurrentVideoCall) {
             return true;
-        } else if (wasVideoCall && mIsWifi && !isVowifiEnabled) {
+        } else if (wasVideoCall && isWifi() && !isVowifiEnabled) {
             return true;
         }
         return false;
@@ -1378,7 +1444,7 @@ abstract class TelephonyConnection extends Connection implements Holdable,
             return false;
         }
 
-        if (mIsWifi && !canWifiCallsBeHdAudio) {
+        if (isWifi() && !canWifiCallsBeHdAudio) {
             return false;
         }
 
@@ -1987,8 +2053,10 @@ abstract class TelephonyConnection extends Connection implements Holdable,
         capabilities = changeBitmask(capabilities, CAPABILITY_SUPPORTS_VT_REMOTE_BIDIRECTIONAL,
                 can(mOriginalConnectionCapabilities, Capability.SUPPORTS_VT_REMOTE_BIDIRECTIONAL));
 
+        boolean isLocalVideoSupported = can(mOriginalConnectionCapabilities,
+                Capability.SUPPORTS_VT_LOCAL_BIDIRECTIONAL) && !mIsTtyEnabled;
         capabilities = changeBitmask(capabilities, CAPABILITY_SUPPORTS_VT_LOCAL_BIDIRECTIONAL,
-                can(mOriginalConnectionCapabilities, Capability.SUPPORTS_VT_LOCAL_BIDIRECTIONAL));
+                isLocalVideoSupported);
 
         capabilities = changeBitmask(capabilities, CAPABILITY_SUPPORTS_RTT_REMOTE,
                 can(mOriginalConnectionCapabilities, Capability.SUPPORTS_RTT_REMOTE));
@@ -1997,21 +2065,31 @@ abstract class TelephonyConnection extends Connection implements Holdable,
     }
 
     /**
-     * Sets whether the call is using wifi. Used when rebuilding the capabilities to set or unset
-     * the {@link Connection#PROPERTY_WIFI} property.
-     */
-    public void setWifi(boolean isWifi) {
-        mIsWifi = isWifi;
-        updateConnectionProperties();
-        updateStatusHints();
-        refreshDisableAddCall();
-    }
-
-    /**
      * Whether the call is using wifi.
      */
     boolean isWifi() {
-        return mIsWifi;
+        return getCallRadioTech() == ServiceState.RIL_RADIO_TECHNOLOGY_IWLAN;
+    }
+
+    /**
+     * Sets whether this call has been identified by the network as an emergency call.
+     * @param isNetworkIdentifiedEmergencyCall {@code true} if the network has identified this call
+     * as an emergency call, {@code false} otherwise.
+     */
+    public void setIsNetworkIdentifiedEmergencyCall(boolean isNetworkIdentifiedEmergencyCall) {
+        Log.d(this, "setIsNetworkIdentifiedEmergencyCall; callId=%s, "
+                + "isNetworkIdentifiedEmergencyCall=%b", getTelecomCallId(),
+                isNetworkIdentifiedEmergencyCall);
+        mIsNetworkIdentifiedEmergencyCall = isNetworkIdentifiedEmergencyCall;
+        updateConnectionProperties();
+    }
+
+    /**
+     * @return {@code true} if the network has identified this call as an emergency call,
+     * {@code false} otherwise.
+     */
+    public boolean isNetworkIdentifiedEmergencyCall() {
+        return mIsNetworkIdentifiedEmergencyCall;
     }
 
     /**
@@ -2119,6 +2197,15 @@ abstract class TelephonyConnection extends Connection implements Holdable,
     }
 
     /**
+     * Sets whether TTY is enabled or not.
+     * @param isTtyEnabled
+     */
+    public void setTtyEnabled(boolean isTtyEnabled) {
+        mIsTtyEnabled = isTtyEnabled;
+        updateConnectionCapabilities();
+    }
+
+    /**
      * Whether the original connection is an IMS connection.
      * @return {@code True} if the original connection is an IMS connection, {@code false}
      *     otherwise.
@@ -2191,7 +2278,7 @@ abstract class TelephonyConnection extends Connection implements Holdable,
     }
 
     private void updateStatusHints() {
-        if (mIsWifi && getPhone() != null) {
+        if (isWifi() && getPhone() != null) {
             int labelId = isValidRingingCall()
                     ? R.string.status_hint_label_incoming_wifi_call
                     : R.string.status_hint_label_wifi_call;

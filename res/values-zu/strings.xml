@@ -170,6 +170,7 @@
     <string name="registration_done" msgid="495135664535876612">"Ibhalisiwe kwinethiwekhi"</string>
     <string name="already_auto" msgid="6067116884321285507">"Sekuvele kusokhethweni lokuzenzakalela."</string>
     <string name="select_automatically" msgid="1046727200631770962">"Khetha ngokuzenzakalela inethiwekhi"</string>
+    <string name="manual_mode_disallowed_summary" msgid="70662262085937277">"Akutholakali uma kuxhunywe ku-%1$s"</string>
     <string name="network_select_title" msgid="7733107364757544558">"Inethiwekhi"</string>
     <string name="register_automatically" msgid="6017849844573519637">"Ukubhalisa okuzenzakalelayo..."</string>
     <string name="preferred_network_mode_title" msgid="2336624679902659306">"Uhlobo lwenethiwekhi oluncamelayo"</string>
@@ -235,7 +236,7 @@
     <string name="call_category" msgid="5863978196309462052">"Iyashaya"</string>
     <string name="network_operator_category" msgid="4830701959205735636">"Inethiwekhi"</string>
     <string name="enhanced_4g_lte_mode_title" msgid="522191650223239171">"Imodi ye-4G LTE ethuthukisiwe"</string>
-    <string name="enhanced_4g_lte_mode_title_variant" msgid="4871126028907265406">"Ukushaya okuthuthukile"</string>
+    <!-- no translation found for enhanced_4g_lte_mode_title_variant:0 (4447454259719947406) -->
     <string name="enhanced_4g_lte_mode_summary" msgid="2332175070522125850">"Sebenzisa amasevisi we-LTE ukuze uthuthukise izwi nokunye ukuxhumana (kunconyiwe)"</string>
     <string name="data_enabled" msgid="5972538663568715366">"Idatha ivunyelwe"</string>
     <string name="data_enable_summary" msgid="2382798156640007971">"Vumela ukusetshenziswa kwedatha"</string>
@@ -486,7 +487,7 @@
     <string name="notification_voicemail_text_format" msgid="4447323569453981685">"Dayela <xliff:g id="VOICEMAIL_NUMBER">%s</xliff:g>"</string>
     <string name="notification_voicemail_no_vm_number" msgid="760963466895609716">"Inombolo yevoyisimeyili ayaziwa"</string>
     <string name="notification_network_selection_title" msgid="4224455487793492772">"Ayikho isevisi"</string>
-    <string name="notification_network_selection_text" msgid="2607085729661923269">"Inethiwekhi ekhethiwe <xliff:g id="OPERATOR_NAME">%s</xliff:g> ayitholakali"</string>
+    <string name="notification_network_selection_text" msgid="7550380440576731104">"Inethiwekhi ekhethiwe <xliff:g id="OPERATOR_NAME">%s</xliff:g> ayitholakali"</string>
     <string name="incall_error_power_off" product="watch" msgid="2007450435656211658">"Vula inethiwekhi yeselula, vala imodi yendiza noma vala imodi yokulondoloza ibhethri ukuze wenze ikholi."</string>
     <string name="incall_error_power_off" product="default" msgid="2947938060513306698">"Vala imodi yendiza ukuze wenze ikholi."</string>
     <string name="incall_error_power_off_wfc" msgid="8711428920632416575">"Vala imodi yendiza noma xhumeka kunethiwekhi engenantambo ukuze wenze ikholi."</string>
@@ -510,6 +511,7 @@
     <string name="incall_error_promote_wfc" msgid="106510757624022064">"Nika amandla ukushaya kwevoyisimeyili ukuze wenze ikholi."</string>
     <string name="emergency_information_hint" msgid="399011533038204351">"Ulwazi lwesimo esiphuthumayo"</string>
     <string name="emergency_information_owner_hint" msgid="688331472291637149">"Umnikazi"</string>
+    <string name="emergency_information_confirm_hint" msgid="4039012670779853030">"Thepha futhi ukuze ubuke ulwazi"</string>
     <string name="emergency_enable_radio_dialog_title" msgid="4627849966634578257">"Ikholi ephuthumayo"</string>
     <string name="emergency_dialpad_title" msgid="6052294225467269233">"Amakholi aphuthumayo kuphela"</string>
     <string name="single_emergency_number_title" msgid="4959203129714396515">"Inombolo ephuthumayo"</string>
@@ -611,6 +613,7 @@
     <string name="not_voice_capable" msgid="2739898841461577811">"Ukushayela ngezwi akusekelwe"</string>
     <string name="description_dial_button" msgid="7459705245418435351">"dayela"</string>
     <string name="description_dialpad_button" msgid="5220006811894230590">"bonisa iphedi yokudayela"</string>
+    <string name="pane_title_emergency_dialpad" msgid="1148505414688493134">"Iphedi yokudayela ephuthumayo"</string>
     <string name="voicemail_visual_voicemail_switch_title" msgid="5012622186976275457">"Ivoyisimeyili ebonakalayo"</string>
     <string name="voicemail_set_pin_dialog_title" msgid="2797924461029093837">"Setha IPHINI"</string>
     <string name="voicemail_change_pin_dialog_title" msgid="6035421908626121564">"Shintsha i-PIN"</string>
@@ -763,4 +766,12 @@
     <string name="supp_service_forwarded_call" msgid="4509980341645679803">"Ikholi edluliselwe phambili."</string>
     <string name="supp_service_conference_call" msgid="4448616364004466832">"Ijoyina ikholi yengqungquthela."</string>
     <string name="supp_service_held_call_released" msgid="2030677825038709779">"Ikholi ebanjiwe ikhululiwe."</string>
+    <!-- no translation found for callFailed_already_dialing (4652915396769232226) -->
+    <skip />
+    <!-- no translation found for callFailed_already_ringing (7747655701540586943) -->
+    <skip />
+    <!-- no translation found for callFailed_calling_disabled (7257184079619449933) -->
+    <skip />
+    <!-- no translation found for callFailed_too_many_calls (3023051919216926990) -->
+    <skip />
 </resources>

@@ -401,6 +401,8 @@
     <string name="already_auto">Already in automatic selection.</string>
     <!-- Available networks screen, name of switch button for whether to select network automatically -->
     <string name="select_automatically">Automatically select network</string>
+    <!-- Available networks screen, summary when button disallowed due to permanent automatic mode -->
+    <string name="manual_mode_disallowed_summary">Unavailable when connected to %1$s</string>
     <!-- Available networks screen, name of button when user wants to select network manually  -->
     <string name="network_select_title">Network</string>
     <string name="register_automatically">Automatic registration\u2026</string>
@@ -541,7 +543,15 @@
     <!-- Mobile network 4G title [CHAR LIMIT=30] -->
     <string name="enhanced_4g_lte_mode_title">Enhanced 4G LTE Mode</string>
     <!-- Carrier variant of Enhaced 4G LTE Mode title.  [CHAR LIMIT=50] -->
-    <string name="enhanced_4g_lte_mode_title_variant">Advanced Calling</string>
+    <string-array name="enhanced_4g_lte_mode_title_variant">
+        <!-- 0: Default -->
+        <item>@string/enhanced_4g_lte_mode_title</item>
+        <!-- 1: Verizon -->
+        <item>Advanced Calling</item>
+        <!-- 2: O2 UK -->
+        <item>4G Calling</item>
+    </string-array>
+
     <!-- Mobile network 4G summary [CHAR LIMIT=80] -->
     <string name="enhanced_4g_lte_mode_summary">Use LTE services to improve voice and other communications (recommended)</string>
 
@@ -1099,8 +1109,8 @@
     <!-- Label for the "No service" notification item, when expanded. -->
     <string name="notification_network_selection_title">No service</string>
     <!-- Label for the expanded "No service" notification item, including the
-         operator name set by user -->
-    <string name="notification_network_selection_text">Selected network (<xliff:g id="operator_name">%s</xliff:g>) unavailable</string>
+         operator name set by user. No space after "network", appended in nonempty value. -->
+    <string name="notification_network_selection_text">Selected network<xliff:g id="operator_name">%s</xliff:g> unavailable</string>
 
     <!-- In-call screen: call failure message displayed in an error dialog. [CHAR_LIMIT=NONE] -->
     <string name="incall_error_power_off" product="watch">Turn on mobile network, turn off airplane mode or turn off battery saver mode to make a call.</string>
@@ -1151,6 +1161,8 @@
     <string name="emergency_information_hint">Emergency information</string>
     <!-- Hint for the owner of emergency information -->
     <string name="emergency_information_owner_hint">Owner</string>
+    <!-- Hint for confirm the emergency information -->
+    <string name="emergency_information_confirm_hint">Tap again to view info</string>
     <!-- Dialog title for the "radio enable" UI for emergency calls -->
     <string name="emergency_enable_radio_dialog_title">Emergency call</string>
     <!-- Title for the emergency dialpad UI -->
@@ -1824,4 +1836,17 @@
     <string name="srvcc_message">"4G voice call is downgraded to 2G/3G voice call due to 4G network is not available."</string>
     <string name="ut_not_support">UT is not available</string>
     <string name="ct_ut_not_support_close_4glte">UT is not available, please turn off Enhanced 4G LTE Mode in Settings</string>
+
+    <!-- In-call screen: error message shown when the user has attempted to place a new outgoing
+         call, but there is already a call in dialing state. -->
+    <string name="callFailed_already_dialing">Cannot place a call as another outgoing call is already dialing.</string>
+    <!-- In-call screen: error message shown when the user has attempted to place a new outgoing
+         call while there is already a call in ringing state. -->
+    <string name="callFailed_already_ringing">Cannot place a call as there is an unanswered incoming call.  Answer or reject the incoming call prior to placing a new call.</string>
+    <!-- In-call screen: error message shown when the user attempts to place a call, but calling has
+         been disabled using a debug property. -->
+    <string name="callFailed_calling_disabled">Cannot place a call as calling has been disabled using the ro.telephony.disable-call system property.</string>
+    <!-- In-call screen: error message shown when the user attempts to place a call, but calling has
+         been disabled using a debug property. -->
+    <string name="callFailed_too_many_calls">Cannot place a call a there are already two calls in progress.  Disconnect one of the calls or merge them into a conference prior to placing a new call.</string>
 </resources>
