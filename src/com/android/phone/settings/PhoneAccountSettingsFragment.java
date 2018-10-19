@@ -238,19 +238,6 @@ public class PhoneAccountSettingsFragment extends PreferenceFragment
         return false;
     }
 
-    private final SubscriptionManager.OnSubscriptionsChangedListener mOnSubscriptionsChangeListener
-            = new SubscriptionManager.OnSubscriptionsChangedListener() {
-        @Override
-        public void onSubscriptionsChanged() {
-            // clean the ineffective accounts in the entire section at all
-            List<PhoneAccountHandle> ineffectiveAccounts =
-                    getCallingAccounts(false /* includeSims */, false /* includeDisabled */);
-            if (ineffectiveAccounts != null) {
-                initAccountList(ineffectiveAccounts);
-            }
-        }
-    };
-
     /**
      * Handles a phone account selection for the default outgoing phone account.
      *
