@@ -85,6 +85,15 @@ public class PhoneAccountSettingsFragment extends PreferenceFragment
     private SwitchPreference mSipReceiveCallsPreference;
     private SipPreferences mSipPreferences;
 
+    private final SubscriptionManager.OnSubscriptionsChangedListener
+            mOnSubscriptionsChangeListener =
+            new SubscriptionManager.OnSubscriptionsChangedListener() {
+        @Override
+        public void onSubscriptionsChanged() {
+            updateAccounts();
+        }
+    };
+
     @Override
     public void onCreate(Bundle icicle) {
         super.onCreate(icicle);
@@ -145,34 +154,8 @@ public class PhoneAccountSettingsFragment extends PreferenceFragment
          */
         mAccountList = (PreferenceCategory) getPreferenceScreen().findPreference(
                 ACCOUNTS_LIST_CATEGORY_KEY);
-        List<PhoneAccountHandle> allNonSimAccounts =
-                getCallingAccounts(false /* includeSims */, true /* includeDisabled */);
-        // Check to see if we should show the entire section at all.
-        if (shouldShowConnectionServiceList(allNonSimAccounts)) {
-            List<PhoneAccountHandle> enabledAccounts =
-                    getCallingAccounts(true /* includeSims */, false /* includeDisabled */);
-            // Initialize the account list with the set of enabled & SIM accounts.
-            initAccountList(enabledAccounts);
 
-            mDefaultOutgoingAccount = (AccountSelectionPreference)
-                    getPreferenceScreen().findPreference(DEFAULT_OUTGOING_ACCOUNT_KEY);
-            mDefaultOutgoingAccount.setListener(this);
-
-            // Only show the 'Make Calls With..." option if there are multiple accounts.
-            if (enabledAccounts.size() > 1) {
-                updateDefaultOutgoingAccountsModel();
-            } else {
-                mAccountList.removePreference(mDefaultOutgoingAccount);
-            }
-
-            Preference allAccounts = getPreferenceScreen().findPreference(ALL_CALLING_ACCOUNTS_KEY);
-            // If there are no third party (nonSim) accounts, then don't show enable/disable dialog.
-            if (allNonSimAccounts.isEmpty() && allAccounts != null) {
-                mAccountList.removePreference(allAccounts);
-            }
-        } else {
-            getPreferenceScreen().removePreference(mAccountList);
-        }
+        updateAccounts();
 
         if (!isXdivertAvailable || TelephonyManager.getDefault().getMultiSimConfiguration() !=
                  TelephonyManager.MultiSimVariants.DSDS) {
@@ -219,6 +202,13 @@ public class PhoneAccountSettingsFragment extends PreferenceFragment
 
         SubscriptionManager.from(getActivity()).addOnSubscriptionsChangedListener(
                 mOnSubscriptionsChangeListener);
+    }
+
+    @Override
+    public void onPause() {
+        SubscriptionManager.from(getActivity()).removeOnSubscriptionsChangedListener(
+                mOnSubscriptionsChangeListener);
+        super.onPause();
     }
 
     /**
@@ -438,6 +428,40 @@ public class PhoneAccountSettingsFragment extends PreferenceFragment
 
     private boolean shouldShowConnectionServiceList(List<PhoneAccountHandle> allNonSimAccounts) {
         return mTelephonyManager.isMultiSimEnabled() || allNonSimAccounts.size() > 0;
+    }
+
+    private void updateAccounts() {
+        if (mAccountList != null) {
+            mAccountList.removeAll();
+            List<PhoneAccountHandle> allNonSimAccounts =
+                    getCallingAccounts(false /* includeSims */, true /* includeDisabled */);
+            // Check to see if we should show the entire section at all.
+            if (shouldShowConnectionServiceList(allNonSimAccounts)) {
+                List<PhoneAccountHandle> enabledAccounts =
+                        getCallingAccounts(true /* includeSims */, false /* includeDisabled */);
+                // Initialize the account list with the set of enabled & SIM accounts.
+                initAccountList(enabledAccounts);
+
+                mDefaultOutgoingAccount = (AccountSelectionPreference)
+                        getPreferenceScreen().findPreference(DEFAULT_OUTGOING_ACCOUNT_KEY);
+                mDefaultOutgoingAccount.setListener(this);
+
+                // Only show the 'Make Calls With..." option if there are multiple accounts.
+                if (enabledAccounts.size() > 1) {
+                    updateDefaultOutgoingAccountsModel();
+                } else {
+                    mAccountList.removePreference(mDefaultOutgoingAccount);
+                }
+
+                Preference allAccounts = getPreferenceScreen().findPreference(ALL_CALLING_ACCOUNTS_KEY);
+                // If there are no third party (nonSim) accounts, then don't show enable/disable dialog.
+                if (allNonSimAccounts.isEmpty() && allAccounts != null) {
+                    mAccountList.removePreference(allAccounts);
+                }
+            } else {
+                getPreferenceScreen().removePreference(mAccountList);
+            }
+        }
     }
 
     private List<PhoneAccountHandle> getCallingAccounts(
