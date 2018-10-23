@@ -1891,8 +1891,8 @@ public class PhoneInterfaceManager extends ITelephony.Stub {
             return null;
         }
         int subId = phone.getSubId();
-        if (!TelephonyPermissions.checkCallingOrSelfReadPhoneState(
-                mApp, subId, callingPackage, "getImeiForSlot")) {
+        if (!TelephonyPermissions.checkCallingOrSelfReadDeviceIdentifiers(mApp, subId,
+                callingPackage, "getImeiForSlot")) {
             return null;
         }
 
@@ -1922,8 +1922,8 @@ public class PhoneInterfaceManager extends ITelephony.Stub {
             return null;
         }
         int subId = phone.getSubId();
-        if (!TelephonyPermissions.checkCallingOrSelfReadPhoneState(
-                mApp, subId, callingPackage, "getMeidForSlot")) {
+        if (!TelephonyPermissions.checkCallingOrSelfReadDeviceIdentifiers(mApp, subId,
+                callingPackage, "getMeidForSlot")) {
             return null;
         }
 
@@ -4047,8 +4047,8 @@ public class PhoneInterfaceManager extends ITelephony.Stub {
             return null;
         }
         int subId = phone.getSubId();
-        if (!TelephonyPermissions.checkCallingOrSelfReadPhoneState(
-                mApp, subId, callingPackage, "getDeviceId")) {
+        if (!TelephonyPermissions.checkCallingOrSelfReadDeviceIdentifiers(mApp, subId,
+                callingPackage, "getDeviceId")) {
             return null;
         }
 
