@@ -504,11 +504,4 @@ public class PhoneAccountSettingsFragment extends PreferenceFragment
                 .getSystemService(Context.USER_SERVICE);
         return userManager.isPrimaryUser();
     }
-
-    @Override
-    public void onDestroy() {
-        super.onDestroy();
-        SubscriptionManager.from(getActivity()).removeOnSubscriptionsChangedListener(
-                mOnSubscriptionsChangeListener);
-    }
 }
