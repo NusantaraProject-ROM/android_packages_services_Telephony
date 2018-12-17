@@ -19,7 +19,6 @@ package com.android.phone;
 import android.app.AlertDialog;
 import android.app.Dialog;
 import android.app.ProgressDialog;
-import android.content.ActivityNotFoundException;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.DialogInterface;
@@ -32,12 +31,17 @@ import android.media.AudioManager;
 import android.net.Uri;
 import android.os.Handler;
 import android.os.Message;
+<<<<<<< HEAD
 import android.os.RemoteException;
 import android.os.ServiceManager;
 import android.os.SystemProperties;
+=======
+import android.os.PersistableBundle;
+>>>>>>> 474261c12743bda6cbe6f483fdca8ba06cbe7b59
 import android.telecom.PhoneAccount;
 import android.telecom.PhoneAccountHandle;
 import android.telecom.VideoProfile;
+import android.telephony.CarrierConfigManager;
 import android.telephony.PhoneNumberUtils;
 import android.telephony.SubscriptionManager;
 import android.text.TextUtils;
@@ -63,7 +67,11 @@ import com.android.internal.telephony.PhoneConstants;
 import com.android.internal.telephony.PhoneFactory;
 import com.android.internal.telephony.TelephonyCapabilities;
 import com.android.phone.CallGatewayManager.RawGatewayInfo;
+<<<<<<< HEAD
 import org.codeaurora.internal.IExtTelephony;
+=======
+import com.android.phone.settings.SuppServicesUiUtil;
+>>>>>>> 474261c12743bda6cbe6f483fdca8ba06cbe7b59
 
 import java.util.Arrays;
 import java.util.List;
@@ -400,6 +408,22 @@ public class PhoneUtils {
                 text = null;
                 break;
             case COMPLETE:
+                PersistableBundle b = null;
+                if (SubscriptionManager.isValidSubscriptionId(phone.getSubId())) {
+                    b = app.getCarrierConfigForSubId(
+                            phone.getSubId());
+                } else {
+                    b = app.getCarrierConfig();
+                }
+
+                if (b.getBoolean(CarrierConfigManager.KEY_USE_CALLER_ID_USSD_BOOL)) {
+                    text = SuppServicesUiUtil.handleCallerIdUssdResponse(app, context, phone,
+                            mmiCode);
+                    if (mmiCode.getMessage() != null && !text.equals(mmiCode.getMessage())) {
+                        break;
+                    }
+                }
+
                 if (app.getPUKEntryActivity() != null) {
                     // if an attempt to unPUK the device was made, we specify
                     // the title and the message here.
@@ -576,7 +600,15 @@ public class PhoneUtils {
         }
     }
 
-    private static void createUssdDialog(PhoneGlobals app, Context context, CharSequence text,
+    /**
+     * It displays the message dialog for user about the mmi code result message.
+     *
+     * @param app This is {@link PhoneGlobals}
+     * @param context Context to get strings.
+     * @param text This is message's result.
+     * @param windowType The new window type. {@link WindowManager.LayoutParams}.
+     */
+    public static void createUssdDialog(PhoneGlobals app, Context context, CharSequence text,
             int windowType) {
         log("displayMMIComplete: MMI code has finished running.");
 

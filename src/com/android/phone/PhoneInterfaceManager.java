@@ -54,7 +54,6 @@ import android.service.carrier.CarrierIdentifier;
 import android.telecom.PhoneAccount;
 import android.telecom.PhoneAccountHandle;
 import android.telecom.TelecomManager;
-import android.telephony.emergency.EmergencyNumber;
 import android.telephony.CarrierConfigManager;
 import android.telephony.CellInfo;
 import android.telephony.CellInfoGsm;
@@ -80,6 +79,8 @@ import android.telephony.UiccSlotInfo;
 import android.telephony.UssdResponse;
 import android.telephony.VisualVoicemailSmsFilterSettings;
 import android.telephony.cdma.CdmaCellLocation;
+import android.telephony.data.ApnSetting;
+import android.telephony.emergency.EmergencyNumber;
 import android.telephony.gsm.GsmCellLocation;
 import android.telephony.ims.aidl.IImsCapabilityCallback;
 import android.telephony.ims.aidl.IImsConfig;
@@ -101,6 +102,7 @@ import com.android.ims.internal.IImsServiceFeatureCallback;
 import com.android.internal.telephony.CallManager;
 import com.android.internal.telephony.CallStateException;
 import com.android.internal.telephony.CarrierInfoManager;
+import com.android.internal.telephony.CarrierResolver;
 import com.android.internal.telephony.CellNetworkScanResult;
 import com.android.internal.telephony.CommandException;
 import com.android.internal.telephony.DefaultPhoneNotifier;
@@ -1714,7 +1716,7 @@ public class PhoneInterfaceManager extends ITelephony.Stub {
         try {
             final Phone phone = getPhone(subId);
             if (phone != null) {
-                return phone.isDataAllowed();
+                return phone.isDataAllowed(ApnSetting.TYPE_DEFAULT);
             } else {
                 return false;
             }
@@ -2158,6 +2160,20 @@ public class PhoneInterfaceManager extends ITelephony.Stub {
         try {
             final Phone phone = getPhone(subId);
             return phone == null ? null : phone.getPreciseCarrierName();
+        } finally {
+            Binder.restoreCallingIdentity(identity);
+        }
+    }
+
+    @Override
+    public int getCarrierIdFromMccMnc(int slotIndex, String mccmnc) {
+        final Phone phone = PhoneFactory.getPhone(slotIndex);
+        if (phone == null) {
+            return TelephonyManager.UNKNOWN_CARRIER_ID;
+        }
+        final long identity = Binder.clearCallingIdentity();
+        try {
+            return CarrierResolver.getCarrierIdFromMccMnc(phone.getContext(), mccmnc);
         } finally {
             Binder.restoreCallingIdentity(identity);
         }
@@ -2676,12 +2692,9 @@ public class PhoneInterfaceManager extends ITelephony.Stub {
     }
 
     @Override
-    public void addImsRegistrationCallback(int subId, IImsRegistrationCallback c,
-            String callingPackage) throws RemoteException {
-        if (!TelephonyPermissions.checkCallingOrSelfReadPhoneState(mApp, subId, callingPackage,
-                "addImsRegistrationCallback")) {
-            return;
-        }
+    public void registerImsRegistrationCallback(int subId, IImsRegistrationCallback c)
+            throws RemoteException {
+        enforceReadPrivilegedPermission("registerImsRegistrationCallback");
         // TODO: Refactor to remove ImsManager dependence and query through ImsPhone directly.
         final long token = Binder.clearCallingIdentity();
         try {
@@ -2693,12 +2706,8 @@ public class PhoneInterfaceManager extends ITelephony.Stub {
     }
 
     @Override
-    public void removeImsRegistrationCallback(int subId, IImsRegistrationCallback c,
-            String callingPackage) {
-        if (!TelephonyPermissions.checkCallingOrSelfReadPhoneState(mApp, subId, callingPackage,
-                "removeImsRegistrationCallback")) {
-            return;
-        }
+    public void unregisterImsRegistrationCallback(int subId, IImsRegistrationCallback c) {
+        enforceReadPrivilegedPermission("unregisterImsRegistrationCallback");
         // TODO: Refactor to remove ImsManager dependence and query through ImsPhone directly.
         Binder.withCleanCallingIdentity(() ->
                 ImsManager.getInstance(mPhone.getContext(), getSlotIndexOrException(subId))
@@ -2706,12 +2715,9 @@ public class PhoneInterfaceManager extends ITelephony.Stub {
     }
 
     @Override
-    public void addMmTelCapabilityCallback(int subId, IImsCapabilityCallback c,
-            String callingPackage) throws RemoteException {
-        if (!TelephonyPermissions.checkCallingOrSelfReadPhoneState(mApp, subId, callingPackage,
-                "addMmTelCapabilityCallback")) {
-            return;
-        }
+    public void registerMmTelCapabilityCallback(int subId, IImsCapabilityCallback c)
+            throws RemoteException {
+        enforceReadPrivilegedPermission("registerMmTelCapabilityCallback");
         // TODO: Refactor to remove ImsManager dependence and query through ImsPhone directly.
         final long token = Binder.clearCallingIdentity();
         try {
@@ -2723,12 +2729,8 @@ public class PhoneInterfaceManager extends ITelephony.Stub {
     }
 
     @Override
-    public void removeMmTelCapabilityCallback(int subId, IImsCapabilityCallback c,
-            String callingPackage) {
-        if (!TelephonyPermissions.checkCallingOrSelfReadPhoneState(mApp, subId, callingPackage,
-                "removeMmTelCapabilityCallback")) {
-            return;
-        }
+    public void unregisterMmTelCapabilityCallback(int subId, IImsCapabilityCallback c) {
+        enforceReadPrivilegedPermission("unregisterMmTelCapabilityCallback");
         // TODO: Refactor to remove ImsManager dependence and query through ImsPhone directly.
         Binder.withCleanCallingIdentity(() ->
                 ImsManager.getInstance(mPhone.getContext(), getSlotIndexOrException(subId))
@@ -2736,11 +2738,8 @@ public class PhoneInterfaceManager extends ITelephony.Stub {
     }
 
     @Override
-    public boolean isCapable(int subId, int capability, int regTech, String callingPackage) {
-        if (!TelephonyPermissions.checkCallingOrSelfReadPhoneState(mApp, subId, callingPackage,
-                "isCapable")) {
-            return false;
-        }
+    public boolean isCapable(int subId, int capability, int regTech) {
+        enforceReadPrivilegedPermission("isCapable");
         // TODO: Refactor to remove ImsManager dependence and query through ImsPhone directly.
         final long token = Binder.clearCallingIdentity();
         try {
@@ -2755,11 +2754,8 @@ public class PhoneInterfaceManager extends ITelephony.Stub {
     }
 
     @Override
-    public boolean isAvailable(int subId, int capability, int regTech, String callingPackage) {
-        if (!TelephonyPermissions.checkCallingOrSelfReadPhoneState(mApp, subId, callingPackage,
-                "isAvailable")) {
-            return false;
-        }
+    public boolean isAvailable(int subId, int capability, int regTech) {
+        enforceReadPrivilegedPermission("isAvailable");
         final long token = Binder.clearCallingIdentity();
         try {
             Phone phone = getPhone(subId);
@@ -2798,11 +2794,8 @@ public class PhoneInterfaceManager extends ITelephony.Stub {
     }
 
     @Override
-    public boolean isVtSettingEnabled(int subId, String callingPackage) {
-        if (!TelephonyPermissions.checkCallingOrSelfReadPhoneState(mApp, subId, callingPackage,
-                "isVtSettingEnabled")) {
-            return false;
-        }
+    public boolean isVtSettingEnabled(int subId) {
+        enforceReadPrivilegedPermission("isVtSettingEnabled");
         final long identity = Binder.clearCallingIdentity();
         try {
             // TODO: Refactor to remove ImsManager dependence and query through ImsPhone directly.
