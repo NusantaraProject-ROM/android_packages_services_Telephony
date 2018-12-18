@@ -102,9 +102,8 @@ public class CallForwardEditPreference extends EditPhoneNumberPreference {
         this(context, null);
     }
 
-<<<<<<< HEAD
     void init(TimeConsumingPreferenceListener listener, boolean skipReading, Phone phone,
-            boolean replaceInvalidCFNumber, int serviceClass) {
+            boolean replaceInvalidCFNumber, int serviceClass, boolean callForwardByUssd) {
         mPhone = phone;
         mTcpListener = listener;
         mReplaceInvalidCFNumber = replaceInvalidCFNumber;
@@ -136,6 +135,17 @@ public class CallForwardEditPreference extends EditPhoneNumberPreference {
                 mTcpListener.onStarted(this, true);
             }
         }
+        mCallForwardByUssd = callForwardByUssd;
+        Log.d(LOG_TAG,
+                "init :mReplaceInvalidCFNumber " + mReplaceInvalidCFNumber + ", mCallForwardByUssd "
+                        + mCallForwardByUssd);
+        if (mCallForwardByUssd) {
+            mCfInfo = new HashMap<String, String>();
+            TelephonyManager telephonyManager = new TelephonyManager(getContext(),
+                    phone.getSubId());
+            mCarrierXmlParser = new CarrierXmlParser(getContext(),
+                    telephonyManager.getSimCarrierId());
+        }
     }
 
     public boolean isAutoRetryCfu() {
@@ -164,24 +174,6 @@ public class CallForwardEditPreference extends EditPhoneNumberPreference {
                 cfgManager.getConfigForSubId(mPhone.getSubId())
                     .getBoolean("config_enable_cfu_time") : false)
                 && mPhone.isUtEnabled();
-=======
-    void init(TimeConsumingPreferenceListener listener, Phone phone,
-            boolean replaceInvalidCFNumber, boolean callForwardByUssd) {
-        mPhone = phone;
-        mTcpListener = listener;
-        mReplaceInvalidCFNumber = replaceInvalidCFNumber;
-        mCallForwardByUssd = callForwardByUssd;
-        Log.d(LOG_TAG,
-                "init :mReplaceInvalidCFNumber " + mReplaceInvalidCFNumber + ", mCallForwardByUssd "
-                        + mCallForwardByUssd);
-        if (mCallForwardByUssd) {
-            mCfInfo = new HashMap<String, String>();
-            TelephonyManager telephonyManager = new TelephonyManager(getContext(),
-                    phone.getSubId());
-            mCarrierXmlParser = new CarrierXmlParser(getContext(),
-                    telephonyManager.getSimCarrierId());
-        }
->>>>>>> 474261c12743bda6cbe6f483fdca8ba06cbe7b59
     }
 
     void restoreCallForwardInfo(CallForwardInfo cf) {
@@ -260,7 +252,6 @@ public class CallForwardEditPreference extends EditPhoneNumberPreference {
                 // Display no forwarding number while we're waiting for
                 // confirmation
                 setSummaryOn("");
-<<<<<<< HEAD
 
                 // the interface of Phone.setCallForwardingOption has error:
                 // should be action, reason...
@@ -297,7 +288,8 @@ public class CallForwardEditPreference extends EditPhoneNumberPreference {
                         mHandler.obtainMessage(MyHandler.MESSAGE_SET_CF,
                                 action,
                                 MyHandler.MESSAGE_SET_CF));
-=======
+                }
+
                 if (!mCallForwardByUssd) {
                     // the interface of Phone.setCallForwardingOption has error:
                     // should be action, reason...
@@ -317,7 +309,6 @@ public class CallForwardEditPreference extends EditPhoneNumberPreference {
                     }
                     mHandler.sendMessage(mHandler.obtainMessage(mHandler.MESSAGE_SET_CF_USSD,
                             action, MyHandler.MESSAGE_SET_CF));
->>>>>>> 474261c12743bda6cbe6f483fdca8ba06cbe7b59
                 }
                 if (mTcpListener != null) {
                     mTcpListener.onStarted(this, false);
@@ -659,12 +650,8 @@ public class CallForwardEditPreference extends EditPhoneNumberPreference {
                 // setEnabled(false);
             }
             Log.d(LOG_TAG, "handleSetCFResponse: re get");
-<<<<<<< HEAD
-            mPhone.getCallForwardingOption(reason, mServiceClass,
-                    obtainMessage(MESSAGE_GET_CF, msg.arg1, MESSAGE_SET_CF, ar.exception));
-=======
             if (!mCallForwardByUssd) {
-                mPhone.getCallForwardingOption(reason,
+                mPhone.getCallForwardingOption(reason, mServiceClass,
                         obtainMessage(MESSAGE_GET_CF, msg.arg1, MESSAGE_SET_CF, ar.exception));
             } else {
                 mHandler.sendMessage(mHandler.obtainMessage(mHandler.MESSAGE_GET_CF_USSD,
@@ -768,7 +755,6 @@ public class CallForwardEditPreference extends EditPhoneNumberPreference {
             newCallForwardInfo[0].number = tmpNumberStr;
             newCallForwardInfo[0].timeSeconds = tmpTime;
             return newCallForwardInfo;
->>>>>>> 474261c12743bda6cbe6f483fdca8ba06cbe7b59
         }
     }
 

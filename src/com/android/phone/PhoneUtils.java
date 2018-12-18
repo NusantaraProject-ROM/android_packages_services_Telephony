@@ -31,13 +31,10 @@ import android.media.AudioManager;
 import android.net.Uri;
 import android.os.Handler;
 import android.os.Message;
-<<<<<<< HEAD
 import android.os.RemoteException;
 import android.os.ServiceManager;
 import android.os.SystemProperties;
-=======
 import android.os.PersistableBundle;
->>>>>>> 474261c12743bda6cbe6f483fdca8ba06cbe7b59
 import android.telecom.PhoneAccount;
 import android.telecom.PhoneAccountHandle;
 import android.telecom.VideoProfile;
@@ -67,11 +64,7 @@ import com.android.internal.telephony.PhoneConstants;
 import com.android.internal.telephony.PhoneFactory;
 import com.android.internal.telephony.TelephonyCapabilities;
 import com.android.phone.CallGatewayManager.RawGatewayInfo;
-<<<<<<< HEAD
-import org.codeaurora.internal.IExtTelephony;
-=======
 import com.android.phone.settings.SuppServicesUiUtil;
->>>>>>> 474261c12743bda6cbe6f483fdca8ba06cbe7b59
 
 import java.util.Arrays;
 import java.util.List;

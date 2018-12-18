@@ -576,17 +576,11 @@ public class CarrierConfigLoader extends ICarrierConfigLoader.Stub {
             imsi = phone.getSubscriberId();
             gid1 = phone.getGroupIdLevel1();
             gid2 = phone.getGroupIdLevel2();
-<<<<<<< HEAD
             iccid = phone.getIccSerialNumber();
-        }
-
-        return new CarrierIdentifier(mcc, mnc, spn, imsi, gid1, gid2, iccid);
-=======
             carrierId = phone.getCarrierId();
             preciseCarrierId = phone.getPreciseCarrierId();
         }
-        return new CarrierIdentifier(mcc, mnc, spn, imsi, gid1, gid2, carrierId, preciseCarrierId);
->>>>>>> 474261c12743bda6cbe6f483fdca8ba06cbe7b59
+        return new CarrierIdentifier(mcc, mnc, spn, imsi, gid1, gid2, iccid, carrierId, preciseCarrierId);
     }
 
     /** Returns the package name of a priveleged carrier app, or null if there is none. */
