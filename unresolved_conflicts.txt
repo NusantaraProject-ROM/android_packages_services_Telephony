@@ -1,0 +1,18 @@
+# List of unresolved conflicts
+# Generated with `git ls-files --unmerged`
+
+100644 5ad369fbbc326956fd2dccfccb3e4476d5383bc2 1	res/values/config.xml
+100644 7dc9c7c9eadd816c604e833a60838556641fb2d7 2	res/values/config.xml
+100644 38a0b18891515e43bab31302412806a2b3d4de97 3	res/values/config.xml
+100644 bdffb26c466a160c1e924f9cfe77569a8705e4b3 1	src/com/android/phone/CallForwardEditPreference.java
+100644 3426a3c9d313f4621be0cfd380f9a548198103ac 2	src/com/android/phone/CallForwardEditPreference.java
+100644 76f17b1f937a68212a3f9ec6d0247fe248cebae1 3	src/com/android/phone/CallForwardEditPreference.java
+100644 8194c60254b14dd23d538e204a970436ac66de14 1	src/com/android/phone/CarrierConfigLoader.java
+100644 89943b6c99403e526968011b3215367515f0446d 2	src/com/android/phone/CarrierConfigLoader.java
+100644 15c57800d88e9ea1a50105b8e3ae98ef50d9db2b 3	src/com/android/phone/CarrierConfigLoader.java
+100644 6d806214d3737e9ad7e1022590c6b6adeddca333 1	src/com/android/phone/GsmUmtsCallForwardOptions.java
+100755 10788dfc030496c2ffff069f38cc51aa1280d4c9 2	src/com/android/phone/GsmUmtsCallForwardOptions.java
+100644 b8ea8fd46d4f3bd0c3f7f9bc04013715e0e0f4f7 3	src/com/android/phone/GsmUmtsCallForwardOptions.java
+100644 3306d4b37de71f264be2c063525d0ec7e7122201 1	src/com/android/phone/PhoneUtils.java
+100644 4a695d6fce49fd04ed2fbcdaf02a565b3c2127d2 2	src/com/android/phone/PhoneUtils.java
+100644 9b118ff3d1086200c57b277caef7570da9f0c52b 3	src/com/android/phone/PhoneUtils.java
