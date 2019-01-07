@@ -1188,7 +1188,19 @@ public class TelecomAccountRegistry {
     }
 
     private boolean isRadioInValidState(Phone[] phones) {
-        boolean isApmSimNotPwrDown = (SystemProperties.getInt(APM_SIM_NOT_PWDN_PROPERTY, 0) == 1);
+        boolean isApmSimNotPwrDown = false;
+        try {
+            IExtTelephony extTelephony = IExtTelephony.Stub
+                 .asInterface(ServiceManager.getService("extphone"));
+            int propVal = extTelephony.getPropertyValueInt(APM_SIM_NOT_PWDN_PROPERTY, 0);
+            isApmSimNotPwrDown = (propVal == 1);
+            Log.d(this, "isRadioInValidState, propVal = " + propVal +
+                    " isApmSimNotPwrDown = " + isApmSimNotPwrDown);
+        } catch (RemoteException|NullPointerException ex) {
+            Log.w(this, "Failed to get property: + " + APM_SIM_NOT_PWDN_PROPERTY +
+                    " , Exception: " + ex);
+        }
+
         int isAPMOn = Settings.Global.getInt(mContext.getContentResolver(),
                 Settings.Global.AIRPLANE_MODE_ON, 0);
 
