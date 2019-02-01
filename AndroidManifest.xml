@@ -204,6 +204,8 @@
     <uses-permission android:name="android.permission.BIND_TELEPHONY_DATA_SERVICE" />
     <uses-permission android:name="android.permission.PACKAGE_USAGE_STATS" />
 
+    <uses-permission android:name="com.qti.permission.BIND_QTI_IMS_SERVICE" />
+
     <application android:name="PhoneApp"
             android:persistent="true"
             android:label="@string/phoneAppLabel"
@@ -626,5 +628,6 @@
                 <action android:name="android.telephony.data.DataService" />
             </intent-filter>
         </service>
+        <uses-library android:name="ims-ext-common"/>
     </application>
 </manifest>
