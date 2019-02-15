@@ -83,12 +83,6 @@ public class GsmUmtsAdditionalCallOptions extends TimeConsumingPreferenceActivit
             if (icicle == null) {
                 if (DBG) Log.d(LOG_TAG, "start to init ");
                 doPreferenceInit(mInitIndex);
-                if (isUtEnabledToDisableClir()) {
-                    mCLIRButton.setSummary(R.string.sum_default_caller_id);
-                    mCWButton.init(this, false, mPhone);
-                } else {
-                    mCLIRButton.init(this, false, mPhone);
-                }
             } else {
                 if (DBG) Log.d(LOG_TAG, "restore stored states");
                 mInitIndex = mPreferences.size();
@@ -96,11 +90,6 @@ public class GsmUmtsAdditionalCallOptions extends TimeConsumingPreferenceActivit
                     mCWButton.init(this, true, mPhone);
                 }
                 if (mShowCLIRButton) {
-                    if (isUtEnabledToDisableClir()) {
-                        mCLIRButton.setSummary(R.string.sum_default_caller_id);
-                    } else {
-                        mCLIRButton.init(this, true, mPhone);
-                    }
                     int[] clirArray = icicle.getIntArray(mCLIRButton.getKey());
                     if (clirArray != null) {
                         if (DBG) {
@@ -109,7 +98,11 @@ public class GsmUmtsAdditionalCallOptions extends TimeConsumingPreferenceActivit
                         }
                         mCLIRButton.handleGetCLIRResult(clirArray);
                     } else {
-                        mCLIRButton.init(this, false, mPhone);
+                        if (isUtEnabledToDisableClir()) {
+                            mCLIRButton.setSummary(R.string.sum_default_caller_id);
+                        } else {
+                            mCLIRButton.init(this, false, mPhone);
+                        }
                     }
                 }
             }
@@ -166,7 +159,11 @@ public class GsmUmtsAdditionalCallOptions extends TimeConsumingPreferenceActivit
             if (pref instanceof CallWaitingSwitchPreference) {
                 ((CallWaitingSwitchPreference) pref).init(this, false, mPhone);
             } else if (pref instanceof CLIRListPreference) {
-                ((CLIRListPreference) pref).init(this, false, mPhone);
+                if (isUtEnabledToDisableClir()) {
+                  ((CLIRListPreference) pref).setSummary(R.string.sum_default_caller_id);
+                } else {
+                  ((CLIRListPreference) pref).init(this, false, mPhone);
+                }
             }
         }
     }
