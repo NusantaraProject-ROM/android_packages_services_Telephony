@@ -25,6 +25,7 @@ import android.app.AlertDialog;
 import android.app.Dialog;
 import android.app.KeyguardManager;
 import android.app.WallpaperManager;
+import android.app.StatusBarManager;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
@@ -245,6 +246,7 @@ public class EmergencyDialer extends Activity implements View.OnClickListener,
     private boolean mDTMFToneEnabled;
 
     private EmergencyActionGroup mEmergencyActionGroup;
+    private StatusBarManager mStatusBarManager;
 
     private EmergencyInfoGroup mEmergencyInfoGroup;
 
@@ -382,6 +384,7 @@ public class EmergencyDialer extends Activity implements View.OnClickListener,
         }
 
         setContentView(R.layout.emergency_dialer);
+        mStatusBarManager = (StatusBarManager) getSystemService(Context.STATUS_BAR_SERVICE);
 
         mDigits = (ResizingTextEditText) findViewById(R.id.digits);
         mDigits.setKeyListener(DialerKeyListener.getInstance());
@@ -773,6 +776,10 @@ public class EmergencyDialer extends Activity implements View.OnClickListener,
                     this, mProximitySensor, SensorManager.SENSOR_DELAY_NORMAL);
         }
 
+        if (null != mStatusBarManager) {
+            mStatusBarManager.disable(
+                     StatusBarManager.DISABLE_RECENT|StatusBarManager.DISABLE_HOME);
+        }
         // retrieve the DTMF tone play back setting.
         mDTMFToneEnabled = Settings.System.getInt(getContentResolver(),
                 Settings.System.DTMF_TONE_WHEN_DIALING, 1) == 1;
@@ -799,6 +806,9 @@ public class EmergencyDialer extends Activity implements View.OnClickListener,
         super.onPause();
         if (mProximitySensor != null) {
             mSensorManager.unregisterListener(this, mProximitySensor);
+        }
+        if (null != mStatusBarManager) {
+            mStatusBarManager.disable(StatusBarManager.DISABLE_NONE);
         }
     }
 
