@@ -1073,6 +1073,13 @@ public class TelecomAccountRegistry {
                             " slotId: " + slotId + " provisionStatus: " + provisionStatus);
                     // setupAccounts can be called multiple times during service changes. Don't add an
                     // account if the Icc has not been set yet.
+                    if (!SubscriptionManager.isValidSubscriptionId(subscriptionId)
+                            || phone.getFullIccSerialNumber() == null) return;
+                    // Don't add account if it's opportunistic subscription, which is considered
+                    // data only for now.
+                    SubscriptionInfo info = SubscriptionManager.from(mContext)
+                            .getActiveSubscriptionInfo(subscriptionId);
+                    if (info == null || info.isOpportunistic()) return;
                     if (subscriptionId >= 0  && (provisionStatus == PROVISIONED)
                             && (mSubscriptionManager.isActiveSubId(subscriptionId))) {
                         activeCount++;
