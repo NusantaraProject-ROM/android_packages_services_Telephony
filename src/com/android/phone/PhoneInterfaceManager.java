@@ -69,6 +69,7 @@ import android.telephony.LocationAccessPolicy;
 import android.telephony.ModemActivityInfo;
 import android.telephony.NeighboringCellInfo;
 import android.telephony.NetworkScanRequest;
+import android.telephony.PhoneCapability;
 import android.telephony.PhoneNumberRange;
 import android.telephony.RadioAccessFamily;
 import android.telephony.Rlog;
@@ -114,6 +115,7 @@ import com.android.internal.telephony.CarrierResolver;
 import com.android.internal.telephony.CellNetworkScanResult;
 import com.android.internal.telephony.CommandException;
 import com.android.internal.telephony.DefaultPhoneNotifier;
+import com.android.internal.telephony.HalVersion;
 import com.android.internal.telephony.INumberVerificationCallback;
 import com.android.internal.telephony.ITelephony;
 import com.android.internal.telephony.IccCard;
@@ -158,7 +160,6 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -2017,6 +2018,7 @@ public class PhoneInterfaceManager extends ITelephony.Stub {
                                 .setCallingPid(Binder.getCallingPid())
                                 .setCallingUid(Binder.getCallingUid())
                                 .setMethod("getAllCellInfo")
+                                .setMinSdkVersionForCoarse(Build.VERSION_CODES.BASE)
                                 .setMinSdkVersionForFine(Build.VERSION_CODES.Q)
                                 .build());
         switch (locationResult) {
@@ -6186,7 +6188,8 @@ public class PhoneInterfaceManager extends ITelephony.Stub {
                         cardId,
                         cardState,
                         slot.getPhoneId(),
-                        slot.isExtendedApduSupported());
+                        slot.isExtendedApduSupported(),
+                        slot.isRemovable());
             }
             return infos;
         } finally {
@@ -6607,20 +6610,38 @@ public class PhoneInterfaceManager extends ITelephony.Stub {
     }
 
     @Override
-    public boolean isMultisimCarrierRestricted() {
-        enforceReadPrivilegedPermission("isMultisimCarrierRestricted");
+    public boolean isMultisimSupported(String callingPackage) {
+        if (!TelephonyPermissions.checkCallingOrSelfReadPhoneState(mApp,
+                getDefaultPhone().getSubId(), callingPackage, "isMultisimSupported")) {
+            return false;
+        }
 
         final long identity = Binder.clearCallingIdentity();
         try {
             // If the device has less than 2 SIM cards, indicate that multisim is restricted.
             int numPhysicalSlots = UiccController.getInstance().getUiccSlots().length;
             if (numPhysicalSlots < 2) {
-                loge("isMultisimCarrierRestricted: requires at least 2 cards");
-                return true;
+                loge("isMultisimSupported: requires at least 2 cards");
+                return false;
+            }
+            // Check if the hardware supports multisim functionality. If usage of multisim is not
+            // supported by the modem, indicate that it is restricted.
+            PhoneCapability staticCapability =
+                    mPhoneConfigurationManager.getStaticPhoneCapability();
+            if (staticCapability == null) {
+                loge("isMultisimSupported: no static configuration available");
+                return false;
+            }
+            if (staticCapability.logicalModemList.size() < 2) {
+                loge("isMultisimSupported: maximum number of modem is < 2");
+                return false;
+            }
+            // Check if support of multiple SIMs is restricted by carrier
+            if (mTelephonySharedPreferences.getBoolean(PREF_MULTI_SIM_RESTRICTED, false)) {
+                return false;
             }
 
-            // Default value is false. Multi SIM is allowed unless explicitly restricted.
-            return mTelephonySharedPreferences.getBoolean(PREF_MULTI_SIM_RESTRICTED, false);
+            return true;
         } finally {
             Binder.restoreCallingIdentity(identity);
         }
@@ -6682,5 +6703,17 @@ public class PhoneInterfaceManager extends ITelephony.Stub {
         } finally {
             Binder.restoreCallingIdentity(identity);
         }
+    }
+
+    /**
+     * Get the IRadio HAL Version
+     */
+    @Override
+    public int getRadioHalVersion() {
+        Phone phone = getDefaultPhone();
+        if (phone == null) return -1;
+        HalVersion hv = phone.getHalVersion();
+        if (hv.equals(HalVersion.UNKNOWN)) return -1;
+        return hv.major * 100 + hv.minor;
     }
 }
