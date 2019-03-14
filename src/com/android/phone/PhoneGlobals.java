@@ -43,6 +43,7 @@ import android.os.UserManager;
 import android.preference.PreferenceManager;
 import android.provider.Settings;
 import android.telecom.TelecomManager;
+import android.telephony.AccessNetworkConstants.TransportType;
 import android.telephony.CarrierConfigManager;
 import android.telephony.DebugEventReporter;
 import android.telephony.ServiceState;
@@ -641,11 +642,11 @@ public class PhoneGlobals extends ContextWrapper {
                 if (phone != null) {
                     if (IccCardConstants.INTENT_VALUE_ICC_LOADED.equals(simStatus)) {
                         phone.getServiceStateTracker().registerForDataConnectionAttached(
-                                mHandler, EVENT_DATA_CONNECTION_ATTACHED, subId);
+                                TransportType.WWAN, mHandler, EVENT_DATA_CONNECTION_ATTACHED, subId);
                     } else if (IccCardConstants.INTENT_VALUE_ICC_ABSENT.equals(simStatus)
                             || IccCardConstants.INTENT_VALUE_ICC_CARD_IO_ERROR.equals(simStatus)) {
                         phone.getServiceStateTracker()
-                                .unregisterForDataConnectionAttached(mHandler);
+                                .unregisterForDataConnectionAttached(TransportType.WWAN, mHandler);
                     }
                 }
             } else if (action.equals(TelephonyIntents.ACTION_RADIO_TECHNOLOGY_CHANGED)) {
