@@ -25,6 +25,7 @@ import android.app.AlertDialog;
 import android.app.Dialog;
 import android.app.KeyguardManager;
 import android.app.WallpaperManager;
+import android.app.StatusBarManager;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
@@ -111,13 +112,6 @@ public class EmergencyDialer extends Activity implements View.OnClickListener,
         EmergencyInfoGroup.OnConfirmClickListener {
 
     private class MetricsWriter {
-        // Metrics constants indicating the entry type that user opened emergency dialer.
-        // This info is sent from system UI with EXTRA_ENTRY_TYPE. Please make them being
-        // in sync with those in com.android.systemui.util.EmergencyDialerConstants.
-        public static final int ENTRY_TYPE_UNKNOWN = 0;
-        public static final int ENTRY_TYPE_LOCKSCREEN_BUTTON = 1;
-        public static final int ENTRY_TYPE_POWER_MENU = 2;
-
         // Metrics constants indicating the UI that user made phone call.
         public static final int CALL_SOURCE_DIALPAD = 0;
         public static final int CALL_SOURCE_SHORTCUT = 1;
@@ -140,11 +134,10 @@ public class EmergencyDialer extends Activity implements View.OnClickListener,
                 return;
             }
 
-            int entryType = getIntent().getIntExtra(EXTRA_ENTRY_TYPE, ENTRY_TYPE_UNKNOWN);
             KeyguardManager keyguard = (KeyguardManager) getSystemService(Context.KEYGUARD_SERVICE);
             mMetricsLogger.write(new LogMaker(MetricsEvent.EMERGENCY_DIALER)
                     .setType(MetricsEvent.TYPE_OPEN)
-                    .setSubtype(entryType)
+                    .setSubtype(mEntryType)
                     .addTaggedData(MetricsEvent.FIELD_EMERGENCY_DIALER_IS_SCREEN_LOCKED,
                             keyguard.isKeyguardLocked() ? 1 : 0));
         }
@@ -154,11 +147,10 @@ public class EmergencyDialer extends Activity implements View.OnClickListener,
                 return;
             }
 
-            int entryType = getIntent().getIntExtra(EXTRA_ENTRY_TYPE, ENTRY_TYPE_UNKNOWN);
             long userStayDuration = SystemClock.elapsedRealtime() - mUserEnterTimeMillis;
             mMetricsLogger.write(new LogMaker(MetricsEvent.EMERGENCY_DIALER)
                     .setType(MetricsEvent.TYPE_CLOSE)
-                    .setSubtype(entryType)
+                    .setSubtype(mEntryType)
                     .addTaggedData(MetricsEvent.FIELD_EMERGENCY_DIALER_USER_ACTIONS, mUserActions)
                     .addTaggedData(
                             MetricsEvent.FIELD_EMERGENCY_DIALER_DURATION_MS, userStayDuration));
@@ -194,6 +186,13 @@ public class EmergencyDialer extends Activity implements View.OnClickListener,
      */
     public static final String EXTRA_ENTRY_TYPE =
             "com.android.phone.EmergencyDialer.extra.ENTRY_TYPE";
+
+    // Constants indicating the entry type that user opened emergency dialer.
+    // This info is sent from system UI with EXTRA_ENTRY_TYPE. Please make them being
+    // in sync with those in com.android.systemui.util.EmergencyDialerConstants.
+    public static final int ENTRY_TYPE_UNKNOWN = 0;
+    public static final int ENTRY_TYPE_LOCKSCREEN_BUTTON = 1;
+    public static final int ENTRY_TYPE_POWER_MENU = 2;
 
     // List of dialer button IDs.
     private static final int[] DIALER_KEYS = new int[]{
@@ -245,6 +244,7 @@ public class EmergencyDialer extends Activity implements View.OnClickListener,
     private boolean mDTMFToneEnabled;
 
     private EmergencyActionGroup mEmergencyActionGroup;
+    private StatusBarManager mStatusBarManager;
 
     private EmergencyInfoGroup mEmergencyInfoGroup;
 
@@ -292,6 +292,7 @@ public class EmergencyDialer extends Activity implements View.OnClickListener,
     private boolean mIsWfcEmergencyCallingWarningEnabled;
     private float mDefaultDigitsTextSize;
 
+    private int mEntryType;
     private boolean mIsShortcutViewEnabled;
 
     private MetricsWriter mMetricsWriter;
@@ -344,6 +345,9 @@ public class EmergencyDialer extends Activity implements View.OnClickListener,
     protected void onCreate(Bundle icicle) {
         super.onCreate(icicle);
 
+        mEntryType = getIntent().getIntExtra(EXTRA_ENTRY_TYPE, ENTRY_TYPE_UNKNOWN);
+        Log.d(LOG_TAG, "Launched from " + entryTypeToString(mEntryType));
+
         mMetricsWriter = new MetricsWriter();
         mSensorManager = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
         if (mSensorManager != null) {
@@ -382,6 +386,7 @@ public class EmergencyDialer extends Activity implements View.OnClickListener,
         }
 
         setContentView(R.layout.emergency_dialer);
+        mStatusBarManager = (StatusBarManager) getSystemService(Context.STATUS_BAR_SERVICE);
 
         mDigits = (ResizingTextEditText) findViewById(R.id.digits);
         mDigits.setKeyListener(DialerKeyListener.getInstance());
@@ -773,6 +778,10 @@ public class EmergencyDialer extends Activity implements View.OnClickListener,
                     this, mProximitySensor, SensorManager.SENSOR_DELAY_NORMAL);
         }
 
+        if (null != mStatusBarManager) {
+            mStatusBarManager.disable(
+                     StatusBarManager.DISABLE_RECENT|StatusBarManager.DISABLE_HOME);
+        }
         // retrieve the DTMF tone play back setting.
         mDTMFToneEnabled = Settings.System.getInt(getContentResolver(),
                 Settings.System.DTMF_TONE_WHEN_DIALING, 1) == 1;
@@ -800,6 +809,9 @@ public class EmergencyDialer extends Activity implements View.OnClickListener,
         if (mProximitySensor != null) {
             mSensorManager.unregisterListener(this, mProximitySensor);
         }
+        if (null != mStatusBarManager) {
+            mStatusBarManager.disable(StatusBarManager.DISABLE_NONE);
+        }
     }
 
     @Override
@@ -810,8 +822,8 @@ public class EmergencyDialer extends Activity implements View.OnClickListener,
     }
 
     private boolean canEnableShortcutView(PersistableBundle carrierConfig) {
-        if (!getResources().getBoolean(R.bool.config_emergency_shortcut_view_enabled)) {
-            // Disables shortcut view by project.
+        if (mEntryType != ENTRY_TYPE_POWER_MENU) {
+            Log.d(LOG_TAG, "Disables shortcut view since it's not launched from power menu");
             return false;
         }
         if (!carrierConfig.getBoolean(
@@ -907,8 +919,18 @@ public class EmergencyDialer extends Activity implements View.OnClickListener,
     }
 
     private void placeCall(String number, int callSource, ShortcutViewUtils.PhoneInfo phone) {
+        Log.d(LOG_TAG, "Place emergency call from " + callSourceToString(callSource)
+                + ", entry = " + entryTypeToString(mEntryType));
+
         Bundle extras = new Bundle();
         extras.putInt(TelecomManager.EXTRA_CALL_SOURCE, callSource);
+        /**
+         * This is used for Telecom and Telephony to tell modem user's intent is emergency call,
+         * when the dialed number is ambiguous and identified as both emergency number and any
+         * other non-emergency number; e.g. in some situation, 611 could be both an emergency
+         * number in a country and a non-emergency number of a carrier's customer service hotline.
+         */
+        extras.putBoolean(TelecomManager.EXTRA_IS_USER_INTENT_EMERGENCY_CALL, true);
 
         if (phone != null && phone.getPhoneAccountHandle() != null) {
             // Requests to dial through the specified phone.
@@ -1334,5 +1356,27 @@ public class EmergencyDialer extends Activity implements View.OnClickListener,
             }
         }
         return isShortcut;
+    }
+
+    private String entryTypeToString(int entryType) {
+        switch (entryType) {
+            case ENTRY_TYPE_LOCKSCREEN_BUTTON:
+                return "LockScreen";
+            case ENTRY_TYPE_POWER_MENU:
+                return "PowerMenu";
+            default:
+                return "Unknown-" + entryType;
+        }
+    }
+
+    private String callSourceToString(int callSource) {
+        switch (callSource) {
+            case ParcelableCallAnalytics.CALL_SOURCE_EMERGENCY_DIALPAD:
+                return "DialPad";
+            case ParcelableCallAnalytics.CALL_SOURCE_EMERGENCY_SHORTCUT:
+                return "Shortcut";
+            default:
+                return "Unknown-" + callSource;
+        }
     }
 }

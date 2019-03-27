@@ -36,7 +36,6 @@ import android.telephony.PhoneNumberUtils;
 import android.telephony.SubscriptionInfo;
 import android.telephony.SubscriptionManager;
 import android.telephony.TelephonyManager;
-import android.util.FeatureFlagUtils;
 import android.util.Pair;
 
 import com.android.internal.annotations.VisibleForTesting;
@@ -44,13 +43,13 @@ import com.android.internal.telephony.Call;
 import com.android.internal.telephony.CallStateException;
 import com.android.internal.telephony.Phone;
 import com.android.internal.telephony.PhoneConstants;
+import com.android.internal.telephony.TelephonyProperties;
 import com.android.phone.PhoneGlobals;
 import com.android.phone.PhoneUtils;
 import com.android.phone.R;
 
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -206,6 +205,8 @@ public class ImsConference extends Conference implements Holdable {
         @Override
         public void onExtrasChanged(Connection c, Bundle extras) {
             Log.v(this, "onExtrasChanged: c=" + c + " Extras=" + extras);
+            mIsConferenceUri = extras.getBoolean(
+                    TelephonyProperties.EXTRAS_IS_CONFERENCE_URI, false);
             putExtras(extras);
         }
 
@@ -226,6 +227,7 @@ public class ImsConference extends Conference implements Holdable {
      */
     private TelephonyConnection mConferenceHost;
 
+    private boolean mIsConferenceUri = false;
     /**
      * The PhoneAccountHandle of the conference host.
      */
@@ -565,6 +567,8 @@ public class ImsConference extends Conference implements Holdable {
     @Override
     public void onConnectionAdded(android.telecom.Connection connection) {
         // No-op
+        Log.d(this, "connection added: " + connection
+                + ", time: " + connection.getConnectTimeMillis());
     }
 
     @Override
@@ -843,6 +847,9 @@ public class ImsConference extends Conference implements Holdable {
                 } else if (mIsEmulatingSinglePartyCall && !isSinglePartyConference) {
                     // Number of participants increased, so stop emulating a single party call.
                     stopEmulatingSinglePartyCall();
+                } else if (mIsConferenceUri && newParticipantCount == 1) {
+                    // conference uri call can right away start with a single participant
+                    startEmulatingSinglePartyCall();
                 }
             }
 
@@ -920,7 +927,7 @@ public class ImsConference extends Conference implements Holdable {
             // Remove the participant from Telecom.  It'll get picked up in a future CEP update
             // again anyways.
             entry.setDisconnected(new DisconnectCause(DisconnectCause.CANCELED,
-                    "EMULATING_SINGLE_CALL"));
+                    DisconnectCause.REASON_EMULATING_SINGLE_CALL));
             entry.removeConnectionListener(mParticipantListener);
             mTelephonyConnectionService.removeConnection(entry);
             removeConnection(entry);
@@ -955,8 +962,13 @@ public class ImsConference extends Conference implements Holdable {
         ConferenceParticipantConnection connection = new ConferenceParticipantConnection(
                 parent.getOriginalConnection(), participant);
         connection.addConnectionListener(mParticipantListener);
-        connection.setConnectTimeMillis(parent.getConnectTimeMillis());
-
+        if (participant.getConnectTime() == 0) {
+            connection.setConnectTimeMillis(parent.getConnectTimeMillis());
+            connection.setConnectionStartElapsedRealTime(parent.getConnectElapsedTimeMillis());
+        } else {
+            connection.setConnectTimeMillis(participant.getConnectTime());
+            connection.setConnectionStartElapsedRealTime(participant.getConnectElapsedTime());
+        }
         Log.i(this, "createConferenceParticipantConnection: participant=%s, connection=%s",
                 participant, connection);
 
@@ -1119,6 +1131,7 @@ public class ImsConference extends Conference implements Holdable {
                 c.updateState();
                 // Copy the connect time from the conferenceHost
                 c.setConnectTimeMillis(originalConnection.getConnectTime());
+                c.setConnectionStartElapsedRealTime(mConferenceHost.getConnectElapsedTimeMillis());
                 mTelephonyConnectionService.addExistingConnection(phoneAccountHandle, c);
                 mTelephonyConnectionService.addConnectionToConferenceController(c);
             } // CDMA case not applicable for SRVCC
@@ -1211,8 +1224,7 @@ public class ImsConference extends Conference implements Holdable {
                 setStatusHints(new StatusHints(
                         context.getString(R.string.status_hint_label_wifi_call) + displaySubId,
                         Icon.createWithResource(
-                                context.getResources(),
-                                R.drawable.ic_signal_wifi_4_bar_24dp),
+                                context, R.drawable.ic_signal_wifi_4_bar_24dp),
                         null /* extras */));
             }
         } else {

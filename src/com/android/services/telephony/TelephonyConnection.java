@@ -50,7 +50,6 @@ import com.android.ims.ImsCall;
 import com.android.internal.telephony.Call;
 import com.android.internal.telephony.CallFailCause;
 import com.android.internal.telephony.CallStateException;
-import com.android.internal.telephony.Call.HoldingRequestState;
 import com.android.internal.telephony.Connection.Capability;
 import com.android.internal.telephony.Connection.PostDialListener;
 import com.android.internal.telephony.Phone;
@@ -456,7 +455,7 @@ abstract class TelephonyConnection extends Connection implements Holdable,
      */
     public abstract static class TelephonyConnectionListener {
         public void onOriginalConnectionConfigured(TelephonyConnection c) {}
-        public void onOriginalConnectionRetry(TelephonyConnection c, int cause) {}
+        public void onOriginalConnectionRetry(TelephonyConnection c, boolean isPermanentFailure) {}
     }
 
     private final PostDialListener mPostDialListener = new PostDialListener() {
@@ -1022,7 +1021,6 @@ abstract class TelephonyConnection extends Connection implements Holdable,
                 // instead of actually putting it on hold.
                 if (ringingCall.getState() != Call.State.WAITING) {
                     phone.switchHoldingAndActive();
-                    mOriginalConnection.getCall().updateHoldingRequestState(HoldingRequestState.STARTED);
                 }
 
                 // TODO: Cdma calls are slightly different.
@@ -1770,11 +1768,7 @@ abstract class TelephonyConnection extends Connection implements Holdable,
                     setRinging();
                     break;
                 case DISCONNECTED:
-                    if (cause == android.telephony.DisconnectCause
-                            .IMS_SIP_ALTERNATE_EMERGENCY_CALL) {
-                        Log.i(this, "Received Alternate emergency call disconnect cause");
-                        fireOnOriginalConnectionRetryDial(cause);
-                    } else if (shouldTreatAsEmergencyCall()
+                    if (shouldTreatAsEmergencyCall()
                             && (cause
                             == android.telephony.DisconnectCause.EMERGENCY_TEMP_FAILURE
                             || cause
@@ -1784,7 +1778,8 @@ abstract class TelephonyConnection extends Connection implements Holdable,
                         // the state to disconnected and will instead tell the
                         // TelephonyConnectionService to
                         // create a new originalConnection using the new Slot.
-                        fireOnOriginalConnectionRetryDial(cause);
+                        fireOnOriginalConnectionRetryDial(cause
+                                == android.telephony.DisconnectCause.EMERGENCY_PERM_FAILURE);
                     } else {
                         if (mSsNotification != null) {
                             setDisconnected(DisconnectCauseUtil.toTelecomDisconnectCause(
@@ -2299,8 +2294,7 @@ abstract class TelephonyConnection extends Connection implements Holdable,
             setStatusHints(new StatusHints(
                     context.getString(labelId) + displaySubId,
                     Icon.createWithResource(
-                            context.getResources(),
-                            R.drawable.ic_signal_wifi_4_bar_24dp),
+                            context, R.drawable.ic_signal_wifi_4_bar_24dp),
                     null /* extras */));
         } else {
             setStatusHints(null);
@@ -2360,9 +2354,9 @@ abstract class TelephonyConnection extends Connection implements Holdable,
         }
     }
 
-    private final void fireOnOriginalConnectionRetryDial(int cause) {
+    private final void fireOnOriginalConnectionRetryDial(boolean isPermanentFailure) {
         for (TelephonyConnectionListener l : mTelephonyListeners) {
-            l.onOriginalConnectionRetry(this, cause);
+            l.onOriginalConnectionRetry(this, isPermanentFailure);
         }
     }
 
