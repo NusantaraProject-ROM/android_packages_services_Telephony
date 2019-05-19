@@ -43,8 +43,9 @@ import android.os.UserManager;
 import android.preference.PreferenceManager;
 import android.provider.Settings;
 import android.telecom.TelecomManager;
+import android.telephony.AccessNetworkConstants;
+import android.telephony.AnomalyReporter;
 import android.telephony.CarrierConfigManager;
-import android.telephony.DebugEventReporter;
 import android.telephony.ServiceState;
 import android.telephony.SubscriptionManager;
 import android.telephony.TelephonyManager;
@@ -210,7 +211,8 @@ public class PhoneGlobals extends ContextWrapper {
                     break;
 
                 case EVENT_SIM_STATE_CHANGED_CHECKREADY:
-                    if (msg.obj.equals(IccCardConstants.INTENT_VALUE_ICC_READY)) {
+                    if (msg.obj.equals(IccCardConstants.INTENT_VALUE_ICC_READY) ||
+                            msg.obj.equals(IccCardConstants.INTENT_VALUE_ICC_LOADED)) {
                         Log.i(LOG_TAG, "Dismissing depersonal panel");
                         IccNetworkDepersonalizationPanel.dialogDismiss(0);
                     }
@@ -236,7 +238,8 @@ public class PhoneGlobals extends ContextWrapper {
                     // Marks the event where the SIM goes into ready state.
                     // Right now, this is only used for the PUK-unlocking
                     // process.
-                    if (msg.obj.equals(IccCardConstants.INTENT_VALUE_ICC_READY)) {
+                    if (msg.obj.equals(IccCardConstants.INTENT_VALUE_ICC_READY)
+                            || msg.obj.equals(IccCardConstants.INTENT_VALUE_ICC_LOADED)) {
                         // when the right event is triggered and there
                         // are UI objects in the foreground, we close
                         // them to display the lock panel.
@@ -302,8 +305,8 @@ public class PhoneGlobals extends ContextWrapper {
         //   getPackageManager().hasSystemFeature(PackageManager.FEATURE_TELEPHONY_VOICE_CALLS);
 
         if (mCM == null) {
-            // Initialize DebugEventReporter early so that it can be used
-            DebugEventReporter.initialize(this);
+            // Initialize AnomalyReporter early so that it can be used
+            AnomalyReporter.initialize(this);
 
             // Inject telephony component factory if configured using other jars.
             XmlResourceParser parser = getResources().getXml(R.xml.telephony_injection);
@@ -641,11 +644,11 @@ public class PhoneGlobals extends ContextWrapper {
                 if (phone != null) {
                     if (IccCardConstants.INTENT_VALUE_ICC_LOADED.equals(simStatus)) {
                         phone.getServiceStateTracker().registerForDataConnectionAttached(
-                                mHandler, EVENT_DATA_CONNECTION_ATTACHED, subId);
+                                AccessNetworkConstants.TRANSPORT_TYPE_WWAN, mHandler, EVENT_DATA_CONNECTION_ATTACHED, subId);
                     } else if (IccCardConstants.INTENT_VALUE_ICC_ABSENT.equals(simStatus)
                             || IccCardConstants.INTENT_VALUE_ICC_CARD_IO_ERROR.equals(simStatus)) {
                         phone.getServiceStateTracker()
-                                .unregisterForDataConnectionAttached(mHandler);
+                                .unregisterForDataConnectionAttached(AccessNetworkConstants.TRANSPORT_TYPE_WWAN, mHandler);
                     }
                 }
             } else if (action.equals(TelephonyIntents.ACTION_RADIO_TECHNOLOGY_CHANGED)) {
