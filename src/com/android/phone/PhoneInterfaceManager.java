@@ -79,7 +79,6 @@ import android.telephony.RadioAccessSpecifier;
 import android.telephony.Rlog;
 import android.telephony.ServiceState;
 import android.telephony.SignalStrength;
-import android.telephony.SmsManager;
 import android.telephony.SubscriptionInfo;
 import android.telephony.SubscriptionManager;
 import android.telephony.TelephonyHistogram;
@@ -91,6 +90,7 @@ import android.telephony.UssdResponse;
 import android.telephony.VisualVoicemailSmsFilterSettings;
 import android.telephony.cdma.CdmaCellLocation;
 import android.telephony.data.ApnSetting;
+import android.telephony.data.ApnSetting.ApnType;
 import android.telephony.emergency.EmergencyNumber;
 import android.telephony.gsm.GsmCellLocation;
 import android.telephony.ims.ProvisioningManager;
@@ -121,6 +121,7 @@ import com.android.internal.telephony.CellNetworkScanResult;
 import com.android.internal.telephony.CommandException;
 import com.android.internal.telephony.DefaultPhoneNotifier;
 import com.android.internal.telephony.HalVersion;
+import com.android.internal.telephony.IIntegerConsumer;
 import com.android.internal.telephony.INumberVerificationCallback;
 import com.android.internal.telephony.ITelephony;
 import com.android.internal.telephony.IccCard;
@@ -139,6 +140,8 @@ import com.android.internal.telephony.RILConstants;
 import com.android.internal.telephony.ServiceStateTracker;
 import com.android.internal.telephony.SmsApplication;
 import com.android.internal.telephony.SmsApplication.SmsApplicationData;
+import com.android.internal.telephony.SmsController;
+import com.android.internal.telephony.SmsPermissions;
 import com.android.internal.telephony.SubscriptionController;
 import com.android.internal.telephony.TelephonyPermissions;
 import com.android.internal.telephony.dataconnection.ApnSettingUtils;
@@ -156,6 +159,7 @@ import com.android.internal.telephony.uicc.UiccProfile;
 import com.android.internal.telephony.uicc.UiccSlot;
 import com.android.internal.telephony.util.VoicemailNotificationSettingsUtil;
 import com.android.internal.util.HexDump;
+import com.android.phone.settings.PickSmsSubscriptionActivity;
 import com.android.phone.vvm.PhoneAccountHandleConverter;
 import com.android.phone.vvm.RemoteVvmTaskManager;
 import com.android.phone.vvm.VisualVoicemailSettingsUtil;
@@ -163,7 +167,6 @@ import com.android.phone.vvm.VisualVoicemailSmsFilterConfig;
 
 import java.io.FileDescriptor;
 import java.io.PrintWriter;
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -2136,10 +2139,16 @@ public class PhoneInterfaceManager extends ITelephony.Stub {
             case DENIED_HARD:
                 throw new SecurityException("Not allowed to access cell info");
             case DENIED_SOFT:
+                try {
+                    cb.onCellInfo(new ArrayList<CellInfo>());
+                } catch (RemoteException re) {
+                    // Drop without consequences
+                }
                 return;
         }
 
-        final Phone phone = getPhone(subId);
+
+        final Phone phone = getPhoneFromSubId(subId);
         if (phone == null) throw new IllegalArgumentException("Invalid Subscription Id: " + subId);
 
         sendRequestAsync(CMD_REQUEST_CELL_INFO_UPDATE, cb, phone, workSource);
@@ -2648,22 +2657,11 @@ public class PhoneInterfaceManager extends ITelephony.Stub {
         mAppOps.checkPackage(Binder.getCallingUid(), callingPackage);
         enforceVisualVoicemailPackage(callingPackage, subId);
         enforceSendSmsPermission();
-        // Make the calls as the phone process.
-        final long identity = Binder.clearCallingIdentity();
-        try {
-            SmsManager smsManager = SmsManager.getSmsManagerForSubscriptionId(subId);
-            if (port == 0) {
-                smsManager.sendTextMessageWithSelfPermissions(number, null, text,
-                        sentIntent, null, false);
-            } else {
-                byte[] data = text.getBytes(StandardCharsets.UTF_8);
-                smsManager.sendDataMessageWithSelfPermissions(number, null,
-                        (short) port, data, sentIntent, null);
-            }
-        } finally {
-            Binder.restoreCallingIdentity(identity);
-        }
+        SmsController smsController = PhoneFactory.getSmsController();
+        smsController.sendVisualVoicemailSmsForSubscriber(callingPackage, subId, number, port, text,
+                sentIntent);
     }
+
     /**
      * Sets the voice activation state of a given subId.
      */
@@ -3847,7 +3845,7 @@ public class PhoneInterfaceManager extends ITelephony.Stub {
             int command, int p1, int p2, int p3, String data) {
         final long identity = Binder.clearCallingIdentity();
         try {
-            if (channel < 0) {
+            if (channel <= 0) {
                 return "";
             }
 
@@ -4784,17 +4782,19 @@ public class PhoneInterfaceManager extends ITelephony.Stub {
     }
 
     @Override
-    public int checkCarrierPrivilegesForPackage(String pkgName) {
-        final Phone defaultPhone = getDefaultPhone();
-        if (TextUtils.isEmpty(pkgName))
+    public int checkCarrierPrivilegesForPackage(int subId, String pkgName) {
+        if (TextUtils.isEmpty(pkgName)) {
             return TelephonyManager.CARRIER_PRIVILEGE_STATUS_NO_ACCESS;
-        UiccCard card = UiccController.getInstance().getUiccCard(defaultPhone.getPhoneId());
+        }
+
+        int phoneId = SubscriptionManager.getPhoneId(subId);
+        UiccCard card = UiccController.getInstance().getUiccCard(phoneId);
         if (card == null) {
-            loge("checkCarrierPrivilegesForPackage: No UICC");
+            loge("checkCarrierPrivilegesForPackage: No UICC on subId " + subId);
             return TelephonyManager.CARRIER_PRIVILEGE_STATUS_RULES_NOT_LOADED;
         }
-        return card.getCarrierPrivilegeStatus(defaultPhone.getContext().getPackageManager(),
-                pkgName);
+
+        return card.getCarrierPrivilegeStatus(mApp.getPackageManager(), pkgName);
     }
 
     @Override
@@ -4833,33 +4833,39 @@ public class PhoneInterfaceManager extends ITelephony.Stub {
     }
 
     @Override
-    public List<String> getPackagesWithCarrierPrivileges() {
+    public List<String> getPackagesWithCarrierPrivileges(int phoneId) {
         PackageManager pm = mApp.getPackageManager();
         List<String> privilegedPackages = new ArrayList<>();
         List<PackageInfo> packages = null;
-        for (int i = 0; i < TelephonyManager.getDefault().getPhoneCount(); i++) {
-            UiccCard card = UiccController.getInstance().getUiccCard(i);
-            if (card == null) {
-                // No UICC in that slot.
-                continue;
-            }
+        UiccCard card = UiccController.getInstance().getUiccCard(phoneId);
+        // has UICC in that slot.
+        if (card != null) {
             if (card.hasCarrierPrivilegeRules()) {
                 if (packages == null) {
                     // Only check packages in user 0 for now
                     packages = pm.getInstalledPackagesAsUser(
                             PackageManager.MATCH_DISABLED_COMPONENTS
-                            | PackageManager.MATCH_DISABLED_UNTIL_USED_COMPONENTS
-                            | PackageManager.GET_SIGNATURES, UserHandle.USER_SYSTEM);
+                                    | PackageManager.MATCH_DISABLED_UNTIL_USED_COMPONENTS
+                                    | PackageManager.GET_SIGNATURES, UserHandle.USER_SYSTEM);
                 }
                 for (int p = packages.size() - 1; p >= 0; p--) {
                     PackageInfo pkgInfo = packages.get(p);
                     if (pkgInfo != null && pkgInfo.packageName != null
                             && card.getCarrierPrivilegeStatus(pkgInfo)
-                                == TelephonyManager.CARRIER_PRIVILEGE_STATUS_HAS_ACCESS) {
+                            == TelephonyManager.CARRIER_PRIVILEGE_STATUS_HAS_ACCESS) {
                         privilegedPackages.add(pkgInfo.packageName);
                     }
                 }
             }
+        }
+        return privilegedPackages;
+    }
+
+    @Override
+    public List<String> getPackagesWithCarrierPrivilegesForAllPhones() {
+        List<String> privilegedPackages = new ArrayList<>();
+        for (int i = 0; i < TelephonyManager.getDefault().getPhoneCount(); i++) {
+           privilegedPackages.addAll(getPackagesWithCarrierPrivileges(i));
         }
         return privilegedPackages;
     }
@@ -4979,7 +4985,7 @@ public class PhoneInterfaceManager extends ITelephony.Stub {
     }
 
     @Override
-    public String[] getMergedSubscriberIds(String callingPackage) {
+    public String[] getMergedSubscriberIds(int subId, String callingPackage) {
         // This API isn't public, so no need to provide a valid subscription ID - we're not worried
         // about carrier-privileged callers not having access.
         if (!TelephonyPermissions.checkCallingOrSelfReadPhoneState(
@@ -4988,6 +4994,9 @@ public class PhoneInterfaceManager extends ITelephony.Stub {
             return null;
         }
 
+        // Clear calling identity, when calling TelephonyManager, because callerUid must be
+        // the process, where TelephonyManager was instantiated.
+        // Otherwise AppOps check will fail.
         final long identity  = Binder.clearCallingIdentity();
         try {
             final Context context = mApp;
@@ -4996,12 +5005,10 @@ public class PhoneInterfaceManager extends ITelephony.Stub {
 
             // Figure out what subscribers are currently active
             final ArraySet<String> activeSubscriberIds = new ArraySet<>();
-            // Clear calling identity, when calling TelephonyManager, because callerUid must be
-            // the process, where TelephonyManager was instantiated.
-            // Otherwise AppOps check will fail.
 
-            final int[] subIds = sub.getActiveSubscriptionIdList();
-            for (int subId : subIds) {
+            // Only consider subs which match the current subId
+            // This logic can be simplified. See b/131189269 for progress.
+            if (isActiveSubscription(subId)) {
                 activeSubscriberIds.add(tele.getSubscriberId(subId));
             }
 
@@ -7043,8 +7050,7 @@ public class PhoneInterfaceManager extends ITelephony.Stub {
             Phone phone = getPhone(subId);
             if (phone == null) return false;
 
-            boolean isMetered = ApnSettingUtils.isMeteredApnType(ApnSetting.getApnTypeString(
-                    apnType), phone);
+            boolean isMetered = ApnSettingUtils.isMeteredApnType(apnType, phone);
             return !isMetered || phone.getDataEnabledSettings().isDataEnabled(apnType);
         } finally {
             Binder.restoreCallingIdentity(identity);
@@ -7052,7 +7058,7 @@ public class PhoneInterfaceManager extends ITelephony.Stub {
     }
 
     @Override
-    public boolean isApnMetered(int apnType, int subId) {
+    public boolean isApnMetered(@ApnType int apnType, int subId) {
         enforceReadPrivilegedPermission("isApnMetered");
 
         // Now that all security checks passes, perform the operation as ourselves.
@@ -7061,10 +7067,26 @@ public class PhoneInterfaceManager extends ITelephony.Stub {
             Phone phone = getPhone(subId);
             if (phone == null) return true; // By default return true.
 
-            return ApnSettingUtils.isMeteredApnType(ApnSetting.getApnTypeString(
-                    apnType), phone);
+            return ApnSettingUtils.isMeteredApnType(apnType, phone);
         } finally {
             Binder.restoreCallingIdentity(identity);
         }
+    }
+
+    @Override
+    public void enqueueSmsPickResult(String callingPackage, IIntegerConsumer pendingSubIdResult) {
+        SmsPermissions permissions = new SmsPermissions(getDefaultPhone(), mApp,
+                (AppOpsManager) mApp.getSystemService(Context.APP_OPS_SERVICE));
+        if (!permissions.checkCallingCanSendSms(callingPackage, "Sending message")) {
+            throw new SecurityException("Requires SEND_SMS permission to perform this operation");
+        }
+        PickSmsSubscriptionActivity.addPendingResult(pendingSubIdResult);
+        Intent intent = new Intent();
+        intent.setClass(mApp, PickSmsSubscriptionActivity.class);
+        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+        // Bring up choose default SMS subscription dialog right now
+        intent.putExtra(PickSmsSubscriptionActivity.DIALOG_TYPE_KEY,
+                PickSmsSubscriptionActivity.SMS_PICK_FOR_MESSAGE);
+        mApp.startActivity(intent);
     }
 }
