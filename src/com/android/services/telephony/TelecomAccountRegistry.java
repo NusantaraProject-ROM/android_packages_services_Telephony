@@ -291,7 +291,7 @@ public class TelecomAccountRegistry {
                 capabilities |= PhoneAccount.CAPABILITY_PLACE_EMERGENCY_CALLS;
             }
 
-            mIsEmergencyPreferred = isEmergencyPreferredAccount(subId, mActiveDataSubscriptionId);
+            mIsEmergencyPreferred = isEmergencyPreferredAccount(subId);
             if (mIsEmergencyPreferred) {
                 capabilities |= PhoneAccount.CAPABILITY_EMERGENCY_PREFERRED;
             }
@@ -452,47 +452,24 @@ public class TelecomAccountRegistry {
          * @return true if Telecom should prefer this PhoneAccount, false if there is no preference
          * needed.
          */
-        private boolean isEmergencyPreferredAccount(int subId, int activeDataSubId) {
-            Log.d(this, "isEmergencyPreferredAccount: subId=" + subId + ", activeData="
-                    + activeDataSubId);
+        private boolean isEmergencyPreferredAccount(int subId) {
             final boolean gnssSuplRequiresDefaultData = mContext.getResources().getBoolean(
                     R.bool.config_gnss_supl_requires_default_data_for_emergency);
             if (!gnssSuplRequiresDefaultData) {
-                Log.d(this, "isEmergencyPreferredAccount: Device does not require preference.");
                 // No preference is necessary.
                 return false;
             }
 
-            SubscriptionController controller = SubscriptionController.getInstance();
-            if (controller == null) {
-                Log.d(this, "isEmergencyPreferredAccount: SubscriptionController not available.");
-                return false;
-            }
-            // Only set an emergency preference on devices with multiple active subscriptions
-            // (include opportunistic subscriptions) in this check.
-            // API says never null, but this can return null in testing.
-            int[] activeSubIds = controller.getActiveSubIdList(false);
-            if (activeSubIds == null || activeSubIds.length <= 1) {
-                Log.d(this, "isEmergencyPreferredAccount: one or less active subscriptions.");
+            // Only set a preference on MSIM devices
+            if (mTelephonyManager.getPhoneCount() <= 1) {
                 return false;
             }
             // Check to see if this PhoneAccount is associated with the default Data subscription.
             if (!SubscriptionManager.isValidSubscriptionId(subId)) {
-                Log.d(this, "isEmergencyPreferredAccount: provided subId " + subId + "is not "
-                        + "valid.");
                 return false;
             }
-            int userDefaultData = controller.getDefaultDataSubId();
-            boolean isActiveDataValid = SubscriptionManager.isValidSubscriptionId(activeDataSubId);
-            boolean isActiveDataOpportunistic = isActiveDataValid
-                    && controller.isOpportunistic(activeDataSubId);
-            // compare the activeDataSubId to the subId specified only if it is valid and not an
-            // opportunistic subscription (only supports data). If not, use the current default
-            // defined by the user.
-            Log.d(this, "isEmergencyPreferredAccount: userDefaultData=" + userDefaultData
-                    + ", isActiveDataOppurtunistic=" + isActiveDataOpportunistic);
-            return subId == ((isActiveDataValid && !isActiveDataOpportunistic) ? activeDataSubId :
-                    userDefaultData);
+            SubscriptionController controller = SubscriptionController.getInstance();
+            return controller != null && (controller.getDefaultDataSubId() == subId);
         }
 
         /**
@@ -695,9 +672,8 @@ public class TelecomAccountRegistry {
             }
         }
 
-        public void updateDefaultDataSubId(int activeDataSubId) {
-            boolean isEmergencyPreferred = isEmergencyPreferredAccount(mPhone.getSubId(),
-                    activeDataSubId);
+        public void updateDefaultDataSubId() {
+            boolean isEmergencyPreferred = isEmergencyPreferredAccount(mPhone.getSubId());
             if (isEmergencyPreferred != mIsEmergencyPreferred) {
                 Log.i(this, "updateDefaultDataSubId - changed, new value: " + isEmergencyPreferred);
                 mAccount = registerPstnPhoneAccount(mIsEmergency, mIsDummy);
@@ -863,10 +839,9 @@ public class TelecomAccountRegistry {
 
         @Override
         public void onActiveDataSubscriptionIdChanged(int subId) {
-            mActiveDataSubscriptionId = subId;
             synchronized (mAccountsLock) {
                 for (AccountEntry account : mAccounts) {
-                    account.updateDefaultDataSubId(mActiveDataSubscriptionId);
+                    account.updateDefaultDataSubId();
                 }
             }
         }
@@ -880,7 +855,6 @@ public class TelecomAccountRegistry {
     private List<AccountEntry> mAccounts = new LinkedList<AccountEntry>();
     private final Object mAccountsLock = new Object();
     private int mServiceState = ServiceState.STATE_POWER_OFF;
-    private int mActiveDataSubscriptionId = SubscriptionManager.INVALID_SUBSCRIPTION_ID;
     private boolean mIsPrimaryUser = true;
 
     // TODO: Remove back-pointer from app singleton to Service, since this is not a preferred
