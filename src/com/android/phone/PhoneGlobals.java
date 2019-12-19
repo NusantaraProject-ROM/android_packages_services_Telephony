@@ -297,7 +297,7 @@ public class PhoneGlobals extends ContextWrapper {
                     break;
                 case EVENT_DATA_CONNECTION_ATTACHED:
                     int subId = (Integer)((AsyncResult)msg.obj).userObj;
-                    if (!mNoDataDueToRoaming
+                    if (mPrevRoamingNotification != ROAMING_NOTIFICATION_DISCONNECTED
                             && subId == mDefaultDataSubId) {
                         if (VDBG) Log.v(LOG_TAG, "EVENT_DATA_CONNECTION_ATTACHED");
                         updateDataRoamingStatus();
