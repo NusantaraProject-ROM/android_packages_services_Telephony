@@ -1795,6 +1795,9 @@ public class PhoneInterfaceManager extends ITelephony.Stub {
         case RILConstants.NETWORK_MODE_LTE_GSM_WCDMA:
         case RILConstants.NETWORK_MODE_LTE_ONLY:
         case RILConstants.NETWORK_MODE_LTE_WCDMA:
+        case RILConstants.NETWORK_MODE_LTE_TDSCDMA_GSM:
+        case RILConstants.NETWORK_MODE_LTE_TDSCDMA:
+        case RILConstants.NETWORK_MODE_LTE_TDSCDMA_CDMA_EVDO_GSM_WCDMA:
             network = Settings.Global.getInt(sPhone.getContext().getContentResolver(),
               Settings.Global.PREFERRED_NETWORK_MODE, 1);
             break;
